@@ -1,0 +1,11 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+img {
+    image-rendering: pixelated; /* Preserve sharp edges */
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+}

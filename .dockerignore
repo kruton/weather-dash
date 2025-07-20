@@ -1,0 +1,8 @@
+# Exclude the project virtual environment from image builds
+.venv
+frontend/node_modules
+.env
+Dockerfile
+compose.yml
+run.sh
+mise.toml

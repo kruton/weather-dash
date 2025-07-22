@@ -18,7 +18,9 @@ class SPAStaticFiles(StaticFiles):
 def get_app() -> FastAPI:
     app = FastAPI(openapi_url=None)
     app.include_router(router)
-    app.mount("/", SPAStaticFiles(directory="./frontend/dist", html=True), name="static")
+    app.mount(
+        "/", SPAStaticFiles(directory="./frontend/dist", html=True), name="static"
+    )
 
     @app.get("/healthz")
     def kubernetes_liveness_probe():

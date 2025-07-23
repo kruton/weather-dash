@@ -48,14 +48,16 @@
   font-weight: bold;
   line-height: 102%;
   height: 100%;
+  padding: 0.5dvh 0;
 }
 
 .current-date {
-  font-size: min(30cqh, 6cqi);
+  font-size: min(32cqh, 6cqi);
   text-align: center;
   align-content: end;
   width: 100%;
   line-height: 105%;
+  padding: 0.5dvh 0;
 }
 
 .today-container {
@@ -105,7 +107,8 @@
 }
 
 .feels-like {
-  font-size: 10cqmin;
+  font-size: 12cqmin;
+  font-weight: xheavy;
   text-align: center;
   position: relative;
   line-height: 110%;
@@ -145,13 +148,12 @@
   height: 100%;
   justify-content: center;
   container-type: size;
-
 }
 
 .data-point-label {
   font-size: min(32cqh, 15cqi);
   text-align: center;
-  font-weight: lighter;
+  font-weight: heavy;
   height: 30%
 }
 
@@ -206,6 +208,7 @@
   align-content: center;
   font-weight: bold;
   line-height: 100%;
+  padding-top: 1dvh;
 }
 
 .forecast-icon {

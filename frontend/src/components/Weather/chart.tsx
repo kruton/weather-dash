@@ -39,6 +39,7 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
 
     const minTemp = Math.round(Math.min(...temperatures));
     const maxTemp = Math.round(Math.max(...temperatures));
+    const tempPadding = Math.min(1, Math.ceil((maxTemp - minTemp) * 0.1));
 
     const options: ChartOptions = {
         animation: {
@@ -55,7 +56,8 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     minRotation: 0, // Prevent label rotation
                     color: "black",
                     font: {
-                        family: 'Jost'
+                        family: 'Jost',
+                        size: 14,
                     }
                 },
                 grid: {
@@ -69,7 +71,8 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     padding: 0,
                     color: "black",
                     font: {
-                        family: 'Jost'
+                        family: 'Jost',
+                        size: 14,
                     },
                     autoSkip: false,
                     callback: function (_, index, values) {
@@ -79,8 +82,8 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     }
                 },
                 grid: { display: false },
-                min: minTemp,
-                max: maxTemp,
+                min: minTemp - tempPadding,
+                max: maxTemp + tempPadding,
             },
             y1: {
                 position: 'right',
@@ -89,7 +92,8 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     padding: 0,
                     color: "black",
                     font: {
-                        family: 'Jost'
+                        family: 'Jost',
+                        size: 14,
                     },
                     autoSkip: false,
                     callback: function (_, index, values) {

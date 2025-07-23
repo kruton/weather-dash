@@ -176,16 +176,33 @@ const parseDataPoints = (weather: WeatherData, airQuality: AirQualityData, units
 
     const aqi = airQuality?.usAqi;
     if (aqi) {
-        const aqiLabels = ["Good", "Fair", "Moderate", "Poor", "Very Poor"];
         dataPoints.push({
             label: "Air Quality",
             measurement: String(Math.round(aqi)),
-            unit: aqiLabels[aqi - 1] || '',
+            unit: getAqiLabel(aqi),
             icon: Aqi,
         });
     }
 
     return dataPoints;
+}
+
+const aqiLabels = [
+    "Good",
+    "Fair",
+    "Moderate",
+    "Poor",
+    "Very Poor",
+    "Hazardous"
+];
+
+function getAqiLabel(aqi: number): string {
+    if (aqi <= 50) return aqiLabels[0];
+    if (aqi <= 100) return aqiLabels[1];
+    if (aqi <= 150) return aqiLabels[2];
+    if (aqi <= 200) return aqiLabels[3];
+    if (aqi <= 300) return aqiLabels[4];
+    return aqiLabels[5];
 }
 
 // hourly:

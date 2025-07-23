@@ -23,7 +23,7 @@ const LastRefresh = () => {
 }
 
 const Header = ({ cityName }: { cityName: string }) => {
-    const current_date = "Thursday, July 17";
+    const current_date = format(new Date(), "EEEE, MMMM d");
     return (
         <div className={styles.header}>
             <div className={styles.location}>{cityName}</div>

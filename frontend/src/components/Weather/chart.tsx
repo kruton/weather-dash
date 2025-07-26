@@ -17,6 +17,7 @@ import type { ChartOptions } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import styles from './weather.module.css';
 import type { HourlyForecastData } from './types';
+import { useEffect, useRef } from 'react';
 
 ChartJS.register(
     CategoryScale,
@@ -33,6 +34,8 @@ ChartJS.register(
 );
 
 export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
+    const chartRef = useRef<ChartJS | null>(null);
+
     const temperatures = hours.map(x => x.temperature);
     const precipitation = hours.map(x => x.precipitation);
     const labels = hours.map(x => format(x.time, 'h a'))
@@ -146,9 +149,31 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
         ],
     };
 
+    useEffect(() => {
+        const chart = chartRef.current;
+        if (!chart) return;
+
+        const yScale = chart.scales['y'];
+        const gradientStart = yScale.getPixelForValue(maxTemp);
+        const gradientEnd = yScale.getPixelForValue(minTemp);
+
+        const ctx = chart.ctx;
+        const tempGradient = ctx.createLinearGradient(0, gradientStart, 0, gradientEnd + 10);
+        tempGradient.addColorStop(0, 'rgba(252,204,5, 0.95)');
+        tempGradient.addColorStop(1, 'rgba(252,204,5, 0.01)');
+        chart.data.datasets[0].backgroundColor = tempGradient;
+
+        const precipitationGradient = ctx.createLinearGradient(0, gradientStart, 0, gradientEnd);
+        precipitationGradient.addColorStop(0, 'rgba(26, 111, 176, 0.8)');
+        precipitationGradient.addColorStop(1, 'rgba(194, 223, 246, 0)');
+        chart.data.datasets[1].backgroundColor = precipitationGradient;
+
+        chart.update();
+    }, [hours, maxTemp, minTemp]);
+
     return (
         <div className={styles["chart-container"]} >
-            <Chart type={'bar'} options={options} data={data} />
+            <Chart ref={chartRef} type={'line'} options={options} data={data} />
         </div >
     );
 };

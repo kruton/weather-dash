@@ -74,4 +74,4 @@ RUN playwright install chromium
 
 # Run the FastAPI application by default
 WORKDIR /app
-CMD ["fastapi", "run", "--host", "0.0.0.0", "/app/src/weather_dash"]
+CMD ["uvicorn", "--host", "0.0.0.0", "weather_dash:app", "--log-config=log_conf.yaml"]

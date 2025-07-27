@@ -119,12 +119,13 @@ const Forecast = ({ days, units }: { days: Day[], units: string }) => (
 const Weather = () => {
     const [lat] = useQueryState("lat", { defaultValue: "37.7749" });
     const [long] = useQueryState("long", { defaultValue: "-122.4194" });
+    const [name] = useQueryState("name");
     const [weatherData, setWeatherData] = useState<ParsedWeatherData>();
 
     useEffect(() => {
         console.log(`trying to fetch... for ${lat} and ${long}`);
-        getParsedWeatherData(lat, long).then(response => setWeatherData(response));
-    }, [lat, long]);
+        getParsedWeatherData(name, lat, long).then(response => setWeatherData(response));
+    }, [name, lat, long]);
 
     if (weatherData == null) { return (<div>Loading...</div>); }
 

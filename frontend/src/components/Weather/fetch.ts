@@ -5,8 +5,11 @@ import { fetchWeatherApi } from 'openmeteo';
 import { formatTime, mapWmoToOwmIconCode } from './utils';
 import { format } from 'date-fns';
 
-export const getParsedWeatherData = async (lat: string, long: string): Promise<ParsedWeatherData> => {
-    const location = await getLocation(lat, long);
+export const getParsedWeatherData = async (name: string | null, lat: string, long: string): Promise<ParsedWeatherData> => {
+    let location: LocationData | null = null;
+    if (!name) {
+        location = await getLocation(lat, long);
+    }
     const current = await getCurrentWeather(lat, long);
     const hourly = await getHourlyForecast(lat, long);
     const daily = await getDailyForecast(lat, long);
@@ -16,21 +19,26 @@ export const getParsedWeatherData = async (lat: string, long: string): Promise<P
         daily,
         hourly,
     }
-    const parsed = await parseWeatherData(weatherData, aqiData, location);
+    const parsed = await parseWeatherData(weatherData, aqiData, name, location);
     return parsed;
 }
 
-const getLocation = async (lat: string, long: string): Promise<LocationData> => {
-    const response = await fetch(`https://api.3geonames.org/${lat},${long}.json`);
-    const resultData = await response.json();
-    return resultData[0];
+const getLocation = async (lat: string, long: string): Promise<LocationData | null> => {
+    try {
+        const response = await fetch(`https://api.3geonames.org/${lat},${long}.json`);
+        const resultData = await response.json();
+        return resultData[0];
+    } catch (error) {
+        console.error("Error fetching location data:", error);
+        return null;
+    }
 }
 
-const parseWeatherData = async (weatherData: WeatherData, aqiData: AirQualityData, locationData: LocationData, units: string = "imperial", timeFormat: '12h' | '24h' = '12h'): Promise<ParsedWeatherData> => {
+const parseWeatherData = async (weatherData: WeatherData, aqiData: AirQualityData, name: string | null = null, locationData: LocationData | null = null, units: string = "imperial", timeFormat: '12h' | '24h' = '12h'): Promise<ParsedWeatherData> => {
     const current = weatherData.current;
     const dt = current.time;
     const currentIcon = WeatherIcons[mapWmoToOwmIconCode(current.weatherCode)];
-    const locationStr = `${locationData.nearest.city}, ${locationData.nearest.prov || locationData.nearest.state}`;
+    const locationStr = (locationData && `${locationData.nearest.city}, ${locationData.nearest.prov || locationData.nearest.state}`) || name || "Unknown Location";
 
     return {
         currentDate: format(dt, "EEEE, MMMM d"),

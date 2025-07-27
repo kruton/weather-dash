@@ -81,16 +81,16 @@ async def take_screenshot(
     height: int,
     lat: float,
     long: float,
-    api_key: str,
+    name: str | None = None,
     color: float = 1.2,
     brightness: float = 1.0,
     quantize: bool = False,
     black: int | None = None,
 ):
     try:
-        full_url = (
-            f"http://localhost:8000/weather?api_key={api_key}&lat={lat}&lon={long}"
-        )
+        full_url = f"http://localhost:8000/weather?lat={lat}&lon={long}"
+        if name:
+            full_url += f"&name={name}"
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(

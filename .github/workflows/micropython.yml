@@ -83,11 +83,11 @@ jobs:
         perl -pi -e 's/Word Clock/Weather/g; s/word_clock/weather/g' ${{ env.CI_PROJECT_ROOT }}/examples/inkylauncher/main.py
 
         cd $CI_PROJECT_ROOT/mrequests
-        mkdir build/mrequests
+        mkdir -p build/mrequests
         for x in mrequests/*.py; do \
           $CI_PROJECT_ROOT/micropython/mpy-cross/build/mpy-cross -o build/$x $x
         done
-        mkdir $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests
+        mkdir -p $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests
         cp build/mrequests/* $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests
       
     - name: "MicroPython: Configure"

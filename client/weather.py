@@ -28,7 +28,6 @@ HEIGHT = None
 gc.collect()  # We're really gonna need that RAM!
 
 FILENAME = "/sd/weather.png"
-ENDPOINT = f"https://weather-dash.their.net/api/screenshot?lat={LAT}&long={LONG}&name={NAME}&width={WIDTH}&height={HEIGHT}"
 
 sd_spi = machine.SPI(
     0,
@@ -41,9 +40,14 @@ uos.mount(sd, "/sd")
 gc.collect()  # Claw back some RAM!
 
 
+def url_escape(s):
+    return "".join(c if c.isalpha() or c.isdigit() else "%%%02x" % ord(c) for c in s)
+
+
 def update():
-    print(f"weather update to {FILENAME}")
-    url = ENDPOINT
+    location = url_escape(NAME)
+    url = f"https://weather-dash.their.net/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}"
+    print(f"weather update to {FILENAME} from {url}")
 
     r = requests.get(url, headers={b"accept": b"image/png"})
     if r.status_code == 200:

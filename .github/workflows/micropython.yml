@@ -84,8 +84,8 @@ jobs:
 
         cd $CI_PROJECT_ROOT/mrequests
         mkdir -p build/mrequests
-        for x in mrequests/*.py; do \
-          $CI_BUILD_ROOT/micropython/mpy-cross/build/mpy-cross -o build/$x $x
+        for file in mrequests/*.py; do \
+          $CI_BUILD_ROOT/micropython/mpy-cross/build/mpy-cross -o build/${file/.py/.mpy} $file
         done
         mkdir -p $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests
         cp build/mrequests/* $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests

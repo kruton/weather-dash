@@ -5,8 +5,8 @@ import { fetchWeatherApi } from 'openmeteo';
 import { formatTime, mapWmoToOwmIconCode } from './utils';
 import { format } from 'date-fns';
 
-export const getParsedWeatherData = async (lat: string, long: string, api_key: string): Promise<ParsedWeatherData> => {
-    const location = await getLocation(lat, long, api_key);
+export const getParsedWeatherData = async (lat: string, long: string): Promise<ParsedWeatherData> => {
+    const location = await getLocation(lat, long);
     const current = await getCurrentWeather(lat, long);
     const hourly = await getHourlyForecast(lat, long);
     const daily = await getDailyForecast(lat, long);
@@ -20,8 +20,8 @@ export const getParsedWeatherData = async (lat: string, long: string, api_key: s
     return parsed;
 }
 
-const getLocation = async (lat: string, long: string, api_key: string): Promise<LocationData> => {
-    const response = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${long}&limit=1&appid=${api_key}`);
+const getLocation = async (lat: string, long: string): Promise<LocationData> => {
+    const response = await fetch(`https://api.3geonames.org/${lat},${long}.json`);
     const resultData = await response.json();
     return resultData[0];
 }
@@ -30,7 +30,7 @@ const parseWeatherData = async (weatherData: WeatherData, aqiData: AirQualityDat
     const current = weatherData.current;
     const dt = current.time;
     const currentIcon = WeatherIcons[mapWmoToOwmIconCode(current.weatherCode)];
-    const locationStr = `${locationData.name}, ${locationData.state || locationData.country}`;
+    const locationStr = `${locationData.nearest.city}, ${locationData.nearest.prov || locationData.nearest.state}`;
 
     return {
         currentDate: format(dt, "EEEE, MMMM d"),

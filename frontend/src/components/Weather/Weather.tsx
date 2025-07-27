@@ -119,25 +119,13 @@ const Forecast = ({ days, units }: { days: Day[], units: string }) => (
 const Weather = () => {
     const [lat] = useQueryState("lat", { defaultValue: "37.7749" });
     const [long] = useQueryState("long", { defaultValue: "-122.4194" });
-    const [api_key] = useQueryState("api_key");
     const [weatherData, setWeatherData] = useState<ParsedWeatherData>();
 
     useEffect(() => {
-        if (!api_key) {
-            console.error("API key is not set.");
-            return;
-        }
         console.log(`trying to fetch... for ${lat} and ${long}`);
-        getParsedWeatherData(lat, long, api_key).then(response => setWeatherData(response));
-    }, [lat, long, api_key]);
+        getParsedWeatherData(lat, long).then(response => setWeatherData(response));
+    }, [lat, long]);
 
-    if (api_key == null) {
-        return (
-            <div className={styles["weather-dashboard"]} style={{ padding: `1.5vw` }}>
-                <div className={styles["error-message"]}>Please set your OpenWeatherMap API key in the request as the "api_key" query parameter.</div>
-            </div>
-        );
-    }
     if (weatherData == null) { return (<div>Loading...</div>); }
 
     return (

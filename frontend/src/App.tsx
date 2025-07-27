@@ -14,13 +14,12 @@ function App() {
 
 const Home = () => {
   const navigate = useNavigate();
-  const [api_key, setApiKey] = useState('');
   const [lat, setLat] = useState('');
   const [long, setLong] = useState('');
 
   const handleSubmit = (e: { preventDefault: () => void; }) => {
     e.preventDefault();
-    const url = `/weather?api_key=${api_key}&lat=${lat}&long=${long}`;
+    const url = `/weather?lat=${lat}&long=${long}`;
     navigate(url);
   };
 
@@ -28,12 +27,6 @@ const Home = () => {
     <div className="home">
       <h1>Welcome to the Weather Dashboard</h1>
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="OpenWeather API Key"
-          value={api_key}
-          onChange={(e) => setApiKey(e.target.value)}
-        />
         <input
           type="number"
           placeholder="Latitude"

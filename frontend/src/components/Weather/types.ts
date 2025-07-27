@@ -94,10 +94,6 @@ export const Units: { [id: string]: Unit } = {
     },
 };
 
-export interface ApiKey {
-    api_key: string,
-}
-
 export interface Units {
     units: string,
 }
@@ -107,10 +103,11 @@ export interface Latitude {
     long: string,
 };
 
+export interface NearestLocation {
+    city: string;
+    prov: string;
+    state: string;
+}
 export interface LocationData {
-    name: string;
-    lat: number;
-    lon: number;
-    country: string;
-    state?: string;
+    nearest: NearestLocation;
 }

@@ -95,7 +95,7 @@ const ForecastDay = ({ day, units }: { day: Day, units: string }) => {
             <div className={styles["forecast-day-name"]}>{day.day}</div>
             <img className={styles["forecast-icon"]} src={day.icon} alt={day.day + " Weather Icon"} />
             <div className={styles["forecast-temps"]}>
-                <span className={styles.high}>{Math.round(day.high)}{unitSuffix}</span> /
+                <span className={styles.high}>{Math.round(day.high)}{unitSuffix}</span>{' / '}
                 <span className={styles.low}>{Math.round(day.low)}{unitSuffix}</span>
             </div>
             {SHOW_MOON_PHASE ? (

@@ -1,25 +1,25 @@
 import { Aqi, FirstQuarter, FullMoon, Humidity, LastQuarter, NewMoon, Pressure, Sunrise, Sunset, Uvi, Visibility, WaningCrescent, WaningGibbous, WaxingCrescent, WaxingGibbous, WeatherIcons, Wind } from './icons';
-import type { Day, DataPoint, DailyForecastData, AirQualityData, WeatherData, HourlyForecastData, CurrentWeather, ParsedWeatherData, LocationData } from './types';
+import type { Day, DataPoint, DailyForecastData, AirQualityData, WeatherData, HourlyForecastData, CurrentWeather, ParsedWeatherData, LocationData, UnitKey } from './types';
 import { Units } from './types';
 import { fetchWeatherApi } from 'openmeteo';
 import { formatTime, mapWmoToOwmIconCode } from './utils';
 import { format } from 'date-fns';
 
-export const getParsedWeatherData = async (name: string | null, lat: string, long: string): Promise<ParsedWeatherData> => {
+export const getParsedWeatherData = async (name: string | null, lat: string, long: string, units: UnitKey = "imperial"): Promise<ParsedWeatherData> => {
     let location: LocationData | null = null;
     if (!name) {
         location = await getLocation(lat, long);
     }
-    const current = await getCurrentWeather(lat, long);
-    const hourly = await getHourlyForecast(lat, long);
-    const daily = await getDailyForecast(lat, long);
-    const aqiData = await getAirQuality(lat, long);
+    const current = await getCurrentWeather(lat, long, units);
+    const hourly = await getHourlyForecast(lat, long, units);
+    const daily = await getDailyForecast(lat, long, units);
+    const aqiData = await getAirQuality(lat, long, units);
     const weatherData: WeatherData = {
         current,
         daily,
         hourly,
     }
-    const parsed = await parseWeatherData(weatherData, aqiData, name, location);
+    const parsed = await parseWeatherData(weatherData, aqiData, name, location, units);
     return parsed;
 }
 
@@ -34,7 +34,7 @@ const getLocation = async (lat: string, long: string): Promise<LocationData | nu
     }
 }
 
-const parseWeatherData = async (weatherData: WeatherData, aqiData: AirQualityData, name: string | null = null, locationData: LocationData | null = null, units: string = "imperial", timeFormat: '12h' | '24h' = '12h'): Promise<ParsedWeatherData> => {
+const parseWeatherData = async (weatherData: WeatherData, aqiData: AirQualityData, name: string | null = null, locationData: LocationData | null = null, units: UnitKey = "imperial", timeFormat: '12h' | '24h' = '12h'): Promise<ParsedWeatherData> => {
     const current = weatherData.current;
     const dt = current.time;
     const currentIcon = WeatherIcons[mapWmoToOwmIconCode(current.weatherCode)];
@@ -115,7 +115,7 @@ const parseForecast = (dailyForecast: DailyForecastData[]): Day[] => {
     return forecast;
 }
 
-const parseDataPoints = (weather: WeatherData, airQuality: AirQualityData, units: string, timeFormat: '12h' | '24h'): DataPoint[] => {
+const parseDataPoints = (weather: WeatherData, airQuality: AirQualityData, units: UnitKey = "imperial", timeFormat: '12h' | '24h'): DataPoint[] => {
     const dataPoints: DataPoint[] = [];
     const current = weather.current || {};
 
@@ -173,12 +173,12 @@ const parseDataPoints = (weather: WeatherData, airQuality: AirQualityData, units
         icon: Uvi,
     });
 
-    const visibility = current.visibility / 5280;
+    const visibility = (units === "imperial") ? current.visibility / 1609.34 : current.visibility / 1000;
     const visibilityStr = visibility >= 10 ? `>10` : Number(visibility).toFixed(1);
     dataPoints.push({
         label: "Visibility",
         measurement: visibilityStr,
-        unit: 'mi',
+        unit: Units[units].distance,
         icon: Visibility,
     });
 
@@ -226,17 +226,32 @@ const METEO_AQI_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 const METEO_OPTIONS = {
     "timezone": "auto",
     "timeformat": "unixtime",
-    "wind_speed_unit": "mph",
-    "temperature_unit": "fahrenheit",
-    "precipitation_unit": "inch"
 }
 
-const getDailyForecast = async (lat: string, long: string): Promise<DailyForecastData[]> => {
+const getUnitOptions = (units: UnitKey) => {
+    if (units === "imperial") {
+        return {
+            "wind_speed_unit": "mph",
+            "temperature_unit": "fahrenheit",
+            "precipitation_unit": "inch",
+        };
+    }
+    if (units === "metric") {
+        return {
+            "wind_speed_unit": "kmh",
+            "temperature_unit": "celsius",
+            "precipitation_unit": "mm",
+        };
+    }
+}
+
+const getDailyForecast = async (lat: string, long: string, units: UnitKey = "imperial"): Promise<DailyForecastData[]> => {
     const params = {
         "latitude": lat,
         "longitude": long,
         "daily": ["apparent_temperature_max", "apparent_temperature_min", "weather_code"],
         "forecast_days": 7,
+        ...getUnitOptions(units),
         ...METEO_OPTIONS
     };
     const responses = await fetchWeatherApi(METEO_URL, params);
@@ -255,12 +270,13 @@ const getDailyForecast = async (lat: string, long: string): Promise<DailyForecas
 
 }
 
-const getHourlyForecast = async (lat: string, long: string): Promise<HourlyForecastData[]> => {
+const getHourlyForecast = async (lat: string, long: string, units: UnitKey = "imperial"): Promise<HourlyForecastData[]> => {
     const params = {
         "latitude": lat,
         "longitude": long,
         "hourly": ["temperature_2m", "precipitation_probability"],
         "forecast_days": 1,
+        ...getUnitOptions(units),
         ...METEO_OPTIONS
     };
     const responses = await fetchWeatherApi(METEO_URL, params);
@@ -277,12 +293,13 @@ const getHourlyForecast = async (lat: string, long: string): Promise<HourlyForec
         });
 }
 
-const getAirQuality = async (lat: string, long: string): Promise<AirQualityData> => {
+const getAirQuality = async (lat: string, long: string, units: UnitKey = "imperial"): Promise<AirQualityData> => {
     const params = {
         "latitude": lat,
         "longitude": long,
         "current": ["us_aqi"],
         "forecast_days": 1,
+        ...getUnitOptions(units),
         ...METEO_OPTIONS
     };
     const responses = await fetchWeatherApi(METEO_AQI_URL, params);
@@ -293,13 +310,14 @@ const getAirQuality = async (lat: string, long: string): Promise<AirQualityData>
     };
 }
 
-const getCurrentWeather = async (lat: string, long: string): Promise<CurrentWeather> => {
+const getCurrentWeather = async (lat: string, long: string, units: UnitKey = "imperial"): Promise<CurrentWeather> => {
     const params = {
         "latitude": lat,
         "longitude": long,
         "daily": ["uv_index_max", "sunset", "sunrise", "apparent_temperature_max", "apparent_temperature_min"],
         "current": ["temperature_2m", "relative_humidity_2m", "apparent_temperature", "weather_code", "surface_pressure", "wind_speed_10m", "visibility"],
         "forecast_days": 1,
+        ...getUnitOptions(units),
         ...METEO_OPTIONS
     };
     const responses = await fetchWeatherApi(METEO_URL, params);

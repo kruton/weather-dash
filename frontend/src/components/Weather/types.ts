@@ -77,26 +77,32 @@ export interface CurrentWeather {
 interface Unit {
     temperature: string,
     speed: string,
+    precipitation: string,
+    distance: string,
 }
 
-export const Units: { [id: string]: Unit } = {
+export type UnitKey = "standard" | "metric" | "imperial";
+
+export const Units: { [key in UnitKey]: Unit } = {
     standard: {
         temperature: "K",
         speed: "m/s",
+        precipitation: "mm",
+        distance: "km",
     },
     metric: {
         temperature: "°C",
         speed: "m/s",
+        precipitation: "mm",
+        distance: "km",
     },
     imperial: {
         temperature: "°F",
         speed: "mph",
+        precipitation: "in",
+        distance: "mi",
     },
 };
-
-export interface Units {
-    units: string,
-}
 
 export interface Latitude {
     lat: string,

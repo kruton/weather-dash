@@ -3,7 +3,7 @@ import { useQueryState } from 'nuqs';
 import styles from './weather.module.css';
 import './main.css';
 import { HourlyGraph } from './chart';
-import type { Day, DataPoint, ParsedWeatherData } from './types';
+import type { Day, DataPoint, ParsedWeatherData, UnitKey } from './types';
 import { getParsedWeatherData } from './fetch';
 import { format } from 'date-fns';
 
@@ -120,12 +120,18 @@ const Weather = () => {
     const [lat] = useQueryState("lat", { defaultValue: "37.7749" });
     const [long] = useQueryState("long", { defaultValue: "-122.4194" });
     const [name] = useQueryState("name");
+    const [units] = useQueryState("units", { defaultValue: "imperial" });
     const [weatherData, setWeatherData] = useState<ParsedWeatherData>();
 
     useEffect(() => {
         console.log(`trying to fetch... for ${lat} and ${long}`);
-        getParsedWeatherData(name, lat, long).then(response => setWeatherData(response));
-    }, [name, lat, long]);
+
+        let usedUnits: UnitKey = "imperial";
+        if (units === "standard" || units === "metric" || units === "imperial") {
+            usedUnits = units as UnitKey;
+        }
+        getParsedWeatherData(name, lat, long, usedUnits).then(response => setWeatherData(response));
+    }, [name, lat, long, units]);
 
     if (weatherData == null) { return (<div>Loading...</div>); }
 

@@ -88,7 +88,7 @@ async def take_screenshot(
     black: int | None = None,
 ):
     try:
-        full_url = f"http://localhost:8000/weather?lat={lat}&lon={long}"
+        full_url = f"http://localhost:8000/weather?lat={lat}&long={long}"
         if name:
             full_url += f"&name={name}"
 

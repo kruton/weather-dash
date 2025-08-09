@@ -30,7 +30,7 @@ jobs:
     - name: Compiler Cache Fixup
       run: |
         mkdir -p /home/runner/.ccache
-  
+
     - name: "CCache: Restore saved cache"
       uses: actions/cache@v4
       with:
@@ -89,7 +89,7 @@ jobs:
         done
         mkdir -p $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests
         cp build/mrequests/* $CI_PROJECT_ROOT/examples/inkylauncher/lib/mrequests
-      
+
     - name: "MicroPython: Configure"
       shell: bash
       run: |
@@ -112,7 +112,7 @@ jobs:
       with:
         name: ${{ env.RELEASE_FILE }}.uf2
         path: ${{ env.CI_BUILD_ROOT }}/${{ env.RELEASE_FILE }}.uf2
-        
+
     - name: "Artifacts: Upload .uf2 (With Filesystem)"
       uses: actions/upload-artifact@v4
       with:

@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -29,16 +31,28 @@ jobs:
         uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-,enable={{is_default_branch}}
+            type=sha,prefix=pr-,enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
       - name: Build and export
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
-          file: Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=weather-dash
           cache-to: type=gha,mode=min,scope=weather-dash
-          outputs: type=docker,dest=/tmp/weather-dash.tar
+          outputs: type=docker,oci-mediatypes=true,dest=/tmp/weather-dash.tar
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -115,15 +129,44 @@ jobs:
         uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-,enable={{is_default_branch}}
+            type=sha,prefix=pr-,enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
-          context: .
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=weather-dash
+          cache-to: type=gha,mode=min,scope=weather-dash
+          outputs: type=docker,dest=/tmp/weather-dash.tar
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@b6fc91790eda82dbba10c76a63507d45b818c83d # v3.0.4
+
+      - name: Sign container image with cosign
+        if: github.event_name != 'pull_request'
+        run: |
+          images=""
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            images+="${tag}@${{ steps.build.outputs.digest }} "
+          done
+          cosign sign --yes $images
+        env:
+          COSIGN_EXPERIMENTAL: 1
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0

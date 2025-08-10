@@ -83,6 +83,10 @@ jobs:
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Test Docker compose
+        env:
+          DOCKER_BUILDKIT: 1
+          BUILDX_CACHE_FROM: type=gha
+          BUILDX_CACHE_TO: type=gha,mode=max
         run: |
           docker compose up -d
           docker compose down

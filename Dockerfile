@@ -36,7 +36,18 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.12-slim-bookworm
 # It is important to use the image that matches the builder, as the path to the
 # Python executable must be the same, e.g., using `python:3.11-slim-bookworm`
-# will fail.
+
+ARG BUILDTIME
+ARG VERSION
+ARG REVISION
+
+LABEL org.opencontainers.image.title="Weather Dashboard for e-Ink displays"
+LABEL org.opencontainers.image.description="Docker container for deploying Weather Dashboard on e-Ink displays"
+LABEL org.opencontainers.image.url="https://github.com/kruton/weather-dash"
+LABEL org.opencontainers.image.source="https://github.com/kruton/weather-dash"
+LABEL org.opencontainers.image.created="${BUILDTIME}"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${REVISION}"
 
 # Prerequisites for Chromium playwright
 RUN apt-get update && apt-get install -y \

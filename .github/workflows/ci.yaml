@@ -47,7 +47,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=weather-dash
-          cache-to: type=gha,mode=min,scope=weather-dash
+          cache-to: type=gha,mode=max,scope=weather-dash
           outputs: type=docker,oci-mediatypes=true,dest=/tmp/weather-dash.tar
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
@@ -147,7 +147,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=weather-dash
           cache-to: type=gha,mode=min,scope=weather-dash
-          outputs: type=docker,dest=/tmp/weather-dash.tar
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}

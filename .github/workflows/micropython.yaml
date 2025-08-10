@@ -121,12 +121,12 @@ jobs:
 
     - name: "Release: Upload .uf2"
       if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: ${{ env.CI_BUILD_ROOT }}/${{ env.RELEASE_FILE }}.uf2
 
     - name: "Release: Upload .uf2 (With Filesystem)"
       if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: ${{ env.CI_BUILD_ROOT }}/${{ env.RELEASE_FILE }}-with-filesystem.uf2

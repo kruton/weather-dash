@@ -159,14 +159,10 @@ jobs:
 
       - name: Sign container image with cosign
         if: github.event_name != 'pull_request'
-        run: |
-          images=""
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            images+="${tag}@${{ steps.build.outputs.digest }} "
-          done
-          cosign sign --yes $images
         env:
           COSIGN_EXPERIMENTAL: 1
+        run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign --yes "{}@${{ steps.push.outputs.digest }}"
+
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0

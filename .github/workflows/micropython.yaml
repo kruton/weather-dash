@@ -41,19 +41,19 @@ jobs:
           ccache-micropython-${{ matrix.name }}-
 
     - name: "Checkout Inky-Frame"
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         repository: kruton/inky-frame
         submodules: true
         path: ${{ env.CI_PROJECT_ROOT }}
 
     - name: "Checkout weather-dash"
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ${{ env.CI_PROJECT_ROOT }}/weather-dash
 
     - name: "Checkout mrequests"
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         repository: SpotlightKid/mrequests
         path: ${{ env.CI_PROJECT_ROOT }}/mrequests

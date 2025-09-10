@@ -18,4 +18,4 @@ build-backend = "hatchling.build"
 hello = "weather_dash:hello"
 
 [tool.uv]
-dev-dependencies = ["ruff==0.12.9", "fastapi-cli==0.0.8"]
+dev-dependencies = ["ruff==0.13.0", "fastapi-cli==0.0.8"]

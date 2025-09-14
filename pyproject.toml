@@ -19,4 +19,9 @@ build-backend = "hatchling.build"
 hello = "weather_dash:hello"
 
 [tool.uv]
-dev-dependencies = ["ruff==0.13.0", "fastapi-cli==0.0.8"]
+dev-dependencies = [
+    "ruff==0.13.0",
+    "fastapi-cli==0.0.8",
+    "pytest==8.3.4",
+    "httpx==0.28.1",
+]

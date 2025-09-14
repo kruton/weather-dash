@@ -1,4 +1,4 @@
-# syntax=docker.io/docker/dockerfile:1.17-labs
+# syntax=docker.io/docker/dockerfile:1.18-labs
 # An example using multi-stage image builds to create a final image without uv.
 
 # First, build the application in the `/app` directory.

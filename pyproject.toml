@@ -8,6 +8,7 @@ dependencies = [
     "fastapi[standard]==0.116.1",
     "pillow==11.3.0",
     "playwright==1.54.0",
+    "prometheus-client==0.22.1",
 ]
 
 [build-system]

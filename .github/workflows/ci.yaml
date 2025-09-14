@@ -88,7 +88,16 @@ jobs:
           BUILDX_CACHE_FROM: type=gha
           BUILDX_CACHE_TO: type=gha,mode=max
         run: |
+          IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v REPOSITORY | head -1)
+          echo "Using pre-built image: $IMAGE_NAME"
+          export IMAGE_NAME
+
           docker compose up -d
+
+          # Verify the service is running
+          sleep 5
+          curl -f http://localhost:8000/healthz || exit 1
+
           docker compose down
 
   publish:

@@ -22,6 +22,6 @@ hello = "weather_dash:hello"
 dev-dependencies = [
     "ruff==0.13.0",
     "fastapi-cli==0.0.8",
-    "pytest==8.3.4",
+    "pytest==8.4.2",
     "httpx==0.28.1",
 ]

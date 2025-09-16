@@ -3,7 +3,7 @@ name = "weather-dash"
 version = "0.1.7"
 description = "A dashboard for weather display on an ePaper display."
 readme = "README.md"
-requires-python = "~=3.12.0"
+requires-python = "~=3.13.7"
 dependencies = [
     "fastapi[standard]==0.116.1",
     "pillow==11.3.0",

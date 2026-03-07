@@ -7,7 +7,7 @@ requires-python = "~=3.12.0"
 dependencies = [
     "fastapi[standard]==0.116.1",
     "pillow==12.1.1",
-    "playwright==1.54.0",
+    "playwright==1.58.0",
     "prometheus-client==0.22.1",
 ]
 

@@ -1,10 +1,7 @@
 name: MicroPython
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_call:
   release:
     types: [created]
 
@@ -12,7 +9,6 @@ jobs:
   build:
     name: MicroPython ${{ matrix.name }}
     runs-on: ubuntu-24.04
-    continue-on-error: true
     strategy:
       matrix:
         include:

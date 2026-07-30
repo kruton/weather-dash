@@ -32,7 +32,7 @@ jobs:
         mkdir -p /home/runner/.ccache
 
     - name: "CCache: Restore saved cache"
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: /home/runner/.ccache
         key: ccache-micropython-${{ matrix.name }}-${{ github.ref }}-${{ github.sha }}

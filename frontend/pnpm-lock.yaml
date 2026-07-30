@@ -65,7 +65,7 @@ importers:
         version: 0.4.20(eslint@9.35.0)
       globals:
         specifier: ^16.3.0
-        version: 16.4.0
+        version: 16.5.0
       typescript:
         specifier: ~5.9.0
         version: 5.9.2
@@ -345,8 +345,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  '@rollup/wasm-node@4.62.2':
-    resolution: {integrity: sha512-LseVv64SSO6S7eyc+LFGUnH36NMMFbtKN28vTUHFinRVzFKH4cVQ/BB22JfXM9Ei5l7x46AIQp+n2QzzJ9kxHg==}
+  '@rollup/wasm-node@4.62.3':
+    resolution: {integrity: sha512-sEOQWamme1YgXeVcE1JkB1k44RwtPWcpYpGUW1Lso7bOj+Ay9lN2Pak/CcfNeC4xqIPNhYSabQNaWYkJJR7m8Q==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
@@ -741,8 +741,8 @@ packages:
     resolution: {integrity: sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ==}
     engines: {node: '>=18'}
 
-  globals@16.4.0:
-    resolution: {integrity: sha512-ob/2LcVVaVGCYN+r14cnwnoDPUufjiYgSqRhiFD0Q1iI4Odora5RE8Iv1D24hAz5oMophRGkGz+yuvQmmUMnMw==}
+  globals@16.5.0:
+    resolution: {integrity: sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ==}
     engines: {node: '>=18'}
 
   graphemer@1.4.0:
@@ -1319,7 +1319,7 @@ snapshots:
       fsevents: 2.3.3
     optional: true
 
-  '@rollup/wasm-node@4.62.2':
+  '@rollup/wasm-node@4.62.3':
     dependencies:
       '@types/estree': 1.0.9
     optionalDependencies:
@@ -1740,7 +1740,7 @@ snapshots:
 
   globals@14.0.0: {}
 
-  globals@16.4.0: {}
+  globals@16.5.0: {}
 
   graphemer@1.4.0: {}
 
@@ -2021,7 +2021,7 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
       postcss: 8.5.22
-      rollup: '@rollup/wasm-node@4.62.2'
+      rollup: '@rollup/wasm-node@4.62.3'
       tinyglobby: 0.2.17
     optionalDependencies:
       fsevents: 2.3.3

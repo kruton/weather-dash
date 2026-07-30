@@ -35,7 +35,7 @@
     "vite": "^7.1.1"
   },
   "optionalDependencies": {
-    "@rollup/wasm-node": "4.55.1"
+    "@rollup/wasm-node": "4.62.3"
   },
   "pnpm": {
     "overrides": {

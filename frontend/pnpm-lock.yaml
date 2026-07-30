@@ -25,7 +25,7 @@ importers:
         version: 2.6.0(react-router-dom@7.9.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-router@7.9.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
       openmeteo:
         specifier: ^1.2.0
-        version: 1.2.0
+        version: 1.2.3
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -324,8 +324,8 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@openmeteo/sdk@1.20.1':
-    resolution: {integrity: sha512-o5tw3+N617Ms8nDm649PWwWt6PDz8NHWBLjOOFB8bx/EJpvsvKEeHMMoapxQ71bjHzQM+4h39eCe6/nM+nBuwg==}
+  '@openmeteo/sdk@1.28.0':
+    resolution: {integrity: sha512-7DOkY1uOAyE8bsxaugNWWB1o6qWxEG3bTGGOJkr7UWAsandEqiGmBom50ra26wgeYB7/vNXT9G7HeXk4F7Zpog==}
     engines: {node: '>=12.0'}
 
   '@rolldown/pluginutils@1.0.0-rc.2':
@@ -715,8 +715,8 @@ packages:
     resolution: {integrity: sha512-f7ccFPK3SXFHpx15UIGyRJ/FJQctuKZ0zVuN3frBo4HnK3cay9VEW0R6yPYFHC0AgqhukPzKjq22t5DmAyqGyw==}
     engines: {node: '>=16'}
 
-  flatbuffers@25.2.10:
-    resolution: {integrity: sha512-7JlN9ZvLDG1McO3kbX0k4v+SUAg48L1rIwEvN6ZQl/eCtgJz9UylTMzE9wrmYrcorgxm3CX/3T/w5VAub99UUw==}
+  flatbuffers@25.9.23:
+    resolution: {integrity: sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==}
 
   flatted@3.3.3:
     resolution: {integrity: sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg==}
@@ -870,8 +870,8 @@ packages:
       react-router-dom:
         optional: true
 
-  openmeteo@1.2.0:
-    resolution: {integrity: sha512-YinFo02TM4wXdm9o2FBAO2u1ka3drNdnFsGNskiO8aCWvZa6nljh3ioH79ipwPdFhCrIiq/LCfpjDGXqH2RBFw==}
+  openmeteo@1.2.3:
+    resolution: {integrity: sha512-3updmgCMnCAAjAgV3RfhMdIBPi/43RtbjQ4CizHGn52RP9SpgmVCDRpun+Ex75NG3jTF3pZp+d1BPlP9DWMHiQ==}
     engines: {node: '>=12.0'}
 
   optionator@0.9.4:
@@ -1300,15 +1300,15 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@openmeteo/sdk@1.20.1':
+  '@openmeteo/sdk@1.28.0':
     dependencies:
-      flatbuffers: 25.2.10
+      flatbuffers: 25.9.23
 
   '@rolldown/pluginutils@1.0.0-rc.2': {}
 
   '@rollup/pluginutils@5.2.0':
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
       estree-walker: 2.0.2
       picomatch: 4.0.3
 
@@ -1719,7 +1719,7 @@ snapshots:
       flatted: 3.3.3
       keyv: 4.5.4
 
-  flatbuffers@25.2.10: {}
+  flatbuffers@25.9.23: {}
 
   flatted@3.3.3: {}
 
@@ -1831,10 +1831,10 @@ snapshots:
       react-router: 7.9.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react-router-dom: 7.9.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
 
-  openmeteo@1.2.0:
+  openmeteo@1.2.3:
     dependencies:
-      '@openmeteo/sdk': 1.20.1
-      flatbuffers: 25.2.10
+      '@openmeteo/sdk': 1.28.0
+      flatbuffers: 25.9.23
 
   optionator@0.9.4:
     dependencies:

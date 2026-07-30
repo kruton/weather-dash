@@ -3,7 +3,7 @@ name = "weather-dash"
 version = "0.1.7"
 description = "A dashboard for weather display on an ePaper display."
 readme = "README.md"
-requires-python = "~=3.12.0"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi[standard]==0.135.1",
     "pillow==12.3.0",
@@ -19,7 +19,10 @@ build-backend = "hatchling.build"
 hello = "weather_dash:hello"
 
 [tool.uv]
-dev-dependencies = [
+python-downloads = "automatic"
+
+[dependency-groups]
+dev = [
     "ruff==0.13.0",
     "fastapi-cli==0.0.32",
     "pytest==9.0.3",

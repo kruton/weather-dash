@@ -1,88 +1,89 @@
 # syntax=docker.io/docker/dockerfile:1.18-labs
-# An example using multi-stage image builds to create a final image without uv.
 
-# First, build the application in the `/app` directory.
-# See `Dockerfile` for details.
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+# Build the frontend with Node.js. Node and pnpm are not included in the final
+# image.
+FROM node:22-slim AS frontend-builder
 
-# Install Node.js and pnpm
-RUN apt-get update && apt-get install -y nodejs npm
-RUN npm install -g pnpm
-
-COPY ./frontend /frontend
-# Build the frontend
 WORKDIR /frontend
-RUN pnpm install
+RUN corepack enable
+
+# Install dependencies before copying the source so this layer remains cached
+# when only application code changes.
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+COPY frontend/ ./
 RUN pnpm run build
 
-# Disable Python downloads, because we want to use the system interpreter
-# across both images. If using a managed Python version, it needs to be
-# copied from the build image into the final image; see `standalone.Dockerfile`
-# for an example.
-ENV UV_PYTHON_DOWNLOADS=0
+
+# Build the Python virtual environment with uv.
+FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim AS python-builder
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project --no-dev
+
 COPY --exclude=frontend . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
 
-# Then, use a final image without uv
-FROM python:3.12-slim-bookworm
-# It is important to use the image that matches the builder, as the path to the
-# Python executable must be the same, e.g., using `python:3.11-slim-bookworm`
+# Run the application without the Node or uv build toolchains.
+FROM python:3.14-slim-trixie AS runtime
 
 ARG BUILDTIME
 ARG VERSION
 ARG REVISION
 
-LABEL org.opencontainers.image.title="Weather Dashboard for e-Ink displays"
-LABEL org.opencontainers.image.description="Docker container for deploying Weather Dashboard on e-Ink displays"
-LABEL org.opencontainers.image.url="https://github.com/kruton/weather-dash"
-LABEL org.opencontainers.image.source="https://github.com/kruton/weather-dash"
-LABEL org.opencontainers.image.created="${BUILDTIME}"
-LABEL org.opencontainers.image.version="${VERSION}"
-LABEL org.opencontainers.image.revision="${REVISION}"
+LABEL org.opencontainers.image.title="Weather Dashboard for e-Ink displays" \
+      org.opencontainers.image.description="Docker container for deploying Weather Dashboard on e-Ink displays" \
+      org.opencontainers.image.url="https://github.com/kruton/weather-dash" \
+      org.opencontainers.image.source="https://github.com/kruton/weather-dash" \
+      org.opencontainers.image.created="${BUILDTIME}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}"
 
-# Prerequisites for Chromium playwright
-RUN apt-get update && apt-get install -y \
-    libglib2.0-0 \
-    libnss3 \
-    libnspr4 \
-    libdbus-1-3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxcb1 \
-    libxkbcommon0 \
-    libatspi2.0-0 \
-    libx11-6 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libasound2
+# Runtime libraries required by Chromium.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libasound2 \
+        libatk-bridge2.0-0 \
+        libatk1.0-0 \
+        libatspi2.0-0 \
+        libcairo2 \
+        libcups2 \
+        libdbus-1-3 \
+        libdrm2 \
+        libgbm1 \
+        libglib2.0-0 \
+        libnspr4 \
+        libnss3 \
+        libpango-1.0-0 \
+        libx11-6 \
+        libxcb1 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxext6 \
+        libxfixes3 \
+        libxkbcommon0 \
+        libxrandr2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the application from the builder
-COPY --from=builder --chown=app:app /app /app
-COPY --from=builder --chown=app:app /frontend/dist /app/frontend/dist
+COPY --from=python-builder /app /app
+COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 
-# Place executables in the environment at the front of the path
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:${PATH}"
 
-# Install Chromium for Playwright
+WORKDIR /app
 RUN playwright install chromium
 
-# Run the FastAPI application by default
-WORKDIR /app
+EXPOSE 8000
 CMD ["uvicorn", "--host", "0.0.0.0", "weather_dash:app", "--log-config=log_conf.yaml"]

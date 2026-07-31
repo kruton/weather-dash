@@ -1,4 +1,4 @@
-# syntax=docker.io/docker/dockerfile:1.18-labs
+# syntax=docker.io/docker/dockerfile:1.26-labs
 
 # Build the frontend with Node.js. Node and pnpm are not included in the final
 # image.

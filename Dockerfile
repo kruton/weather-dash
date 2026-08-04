@@ -20,9 +20,9 @@ RUN pnpm run build
 # Build the Python virtual environment with uv.
 FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim AS python-builder
 
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0
+ENV UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 
@@ -33,7 +33,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY --exclude=frontend . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --locked --no-dev --no-editable \
+    && .venv/bin/playwright install --only-shell chromium
 
 
 # Run the application without the Node or uv build toolchains.
@@ -77,13 +78,15 @@ RUN apt-get update \
         libxrandr2 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=python-builder /app /app
+COPY --from=python-builder /app/.venv /app/.venv
+COPY --from=python-builder /ms-playwright /ms-playwright
 COPY --from=frontend-builder /frontend/dist /app/frontend/dist
+COPY log_conf.yaml /app/log_conf.yaml
 
-ENV PATH="/app/.venv/bin:${PATH}"
+ENV PATH="/app/.venv/bin:${PATH}" \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
-RUN playwright install chromium
 
 EXPOSE 8000
 CMD ["uvicorn", "--host", "0.0.0.0", "weather_dash:app", "--log-config=log_conf.yaml"]

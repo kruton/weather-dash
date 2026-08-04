@@ -1,6 +1,16 @@
-# Exclude the project virtual environment from image builds
+.git
+.github
+.claude
+.pytest_cache
+.ruff_cache
+.vscode
+__pycache__
+*.py[cod]
 .venv
 frontend/node_modules
+frontend/dist
+tests
+client
 .env
 Dockerfile
 compose.yml

@@ -37,7 +37,7 @@ jobs:
           ccache-micropython-${{ matrix.name }}-
 
     - name: "CMake build cache: Restore"
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ${{ github.workspace }}/${{ matrix.name }}
         key: cmake-micropython-${{ matrix.name }}-${{ github.ref }}-${{ github.sha }}
@@ -46,7 +46,7 @@ jobs:
           cmake-micropython-${{ matrix.name }}-
 
     - name: "Python virtualenv cache: Restore"
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ${{ github.workspace }}/.dir2uf2
         key: venv-micropython-${{ hashFiles('**/requirements*.txt') }}

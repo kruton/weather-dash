@@ -90,8 +90,9 @@ jobs:
 
     - name: "Copy weather-dash files to Inky-Frame"
       run: |
-        cp $CI_PROJECT_ROOT/weather-dash/client/* $CI_PROJECT_ROOT/examples/inkylauncher/
-        perl -pi -e 's/Word Clock/Weather/g; s/word_clock/weather/g' ${{ env.CI_PROJECT_ROOT }}/examples/inkylauncher/main.py
+        python3 "$CI_PROJECT_ROOT/weather-dash/client/prepare_launcher.py" \
+          "$CI_PROJECT_ROOT/examples/inkylauncher" \
+          --output "$CI_PROJECT_ROOT/examples/inkylauncher"
 
         cd $CI_PROJECT_ROOT/mrequests
         mkdir -p build/mrequests

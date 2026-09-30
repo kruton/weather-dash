@@ -26,6 +26,8 @@ def prepare(source, output):
             raise RuntimeError("Launcher patch does not match this checkout:\n"
                                + check.stdout.decode() + check.stderr.decode())
     shutil.copy2(client / "weather.py", output / "weather.py")
+    if not (output / "weather_config.py").exists():
+        shutil.copy2(client / "weather_config.py", output / "weather_config.py")
 
 
 if __name__ == "__main__":

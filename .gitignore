@@ -2,3 +2,7 @@
 .env
 **/__pycache__
 **/*.pyc
+
+# CI-produced signed script package
+ota-dist/*
+!ota-dist/.gitkeep

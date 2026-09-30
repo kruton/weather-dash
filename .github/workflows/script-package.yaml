@@ -1,0 +1,64 @@
+name: Script package
+on:
+  workflow_call:
+    secrets:
+      OTA_SIGNING_KEY:
+        required: false
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: kruton/inky-frame
+          ref: b7df36c3e7dfbd7effde9a642f94985cb2fa6449
+          path: inky-source
+      - uses: actions/checkout@v7
+        with:
+          repository: SpotlightKid/mrequests
+          ref: 68d9507d34ff88950b81c8e794401a7bf5205b8b
+          path: mrequests-source
+      - uses: actions/checkout@v7
+        with:
+          repository: micropython/micropython
+          ref: 0fd6c573ea815774668bbb16b8e197c8822368b2
+          path: micropython-source
+      - uses: astral-sh/setup-uv@v7
+      - name: Compile and sign script package
+        env:
+          OTA_SIGNING_KEY: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) && secrets.OTA_SIGNING_KEY || '' }}
+          PRODUCTION: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+        run: |
+          make -C micropython-source/mpy-cross -j2
+          args=()
+          if [[ "$PRODUCTION" == "true" ]]; then args+=(--production); fi
+          uv run --locked python client/build_ota.py \
+            --source inky-source/examples/inkylauncher \
+            --mrequests mrequests-source/mrequests \
+            --compiler "$PWD/micropython-source/mpy-cross/build/mpy-cross" \
+            --output ota-dist "${args[@]}"
+          uv run --locked python -m unittest discover -s client/tests -v
+      - name: Test native verification on the matching MicroPython runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libffi-dev pkg-config
+          git -C micropython-source submodule update --init lib/mbedtls lib/berkeley-db-1.xx lib/micropython-lib
+          python3 client/prepare_verifier.py ota-dist "$PWD/host-modules"
+          make -C micropython-source/ports/unix -j2 USER_C_MODULES="$PWD/host-modules"
+          mkdir runtime-fs
+          micropython-source/ports/unix/build-standard/micropython \
+            client/tests/check_runtime.py "$PWD/client" "$PWD/ota-dist" "$PWD/runtime-fs"
+      - name: Check deterministic bytecode and Merkle root
+        run: |
+          uv run --locked python client/build_ota.py \
+            --source inky-source/examples/inkylauncher \
+            --mrequests mrequests-source/mrequests \
+            --compiler "$PWD/micropython-source/mpy-cross/build/mpy-cross" \
+            --output ota-repeat
+          cmp ota-dist/manifest.json ota-repeat/manifest.json
+          diff -r ota-dist/scripts ota-repeat/scripts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed-script-package
+          path: ota-dist/

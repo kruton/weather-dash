@@ -13,11 +13,8 @@ You *must* insert an SD card into Inky Frame!
 We need somewhere to save the jpg for display.
 """
 
-# Configure these items to match.
+from weather_config import NAME, LAT, LONG, URL
 
-NAME = "San Francisco, California"  # Location name
-LAT = "37.7749"  # Latitude for weather
-LONG = "-122.4194"  # Longitude for weather
 FALLBACK_UPDATE_INTERVAL = 240  # Minutes between updates if time sync fails
 UPDATE_INTERVAL = FALLBACK_UPDATE_INTERVAL  # Launcher reads this after draw()
 clock_synced = False
@@ -120,9 +117,19 @@ def update():
     next_refresh = None
 
     location = url_escape(NAME)
-    url = f"https://weather-dash.their.net/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}"
+    url = f"{URL}/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}"
     print(f"weather update to {FILENAME} from {url}")
 
+    ota_root = None
+    ota_enabled = False
+    try:
+        import ota_boot
+        from ota_protocol import PROFILE
+        ota_enabled = ota_boot.state is not None
+        if ota_enabled:
+            url += "&ota_profile=" + PROFILE
+    except ImportError:
+        pass  # Existing, non-OTA firmware keeps working.
     r = None
     try:
         r = requests.get(url, headers={b"accept": b"image/png"}, save_headers=True)
@@ -134,6 +141,10 @@ def update():
             buf = bytearray(1024)
             r.save(FILENAME, buf=buf)
             next_refresh = target
+            for header in r.headers:
+                name, value = header.split(b":", 1)
+                if name.lower() == b"x-weather-ota-root":
+                    ota_root = value.strip().decode()
             print(f"Image saved to '{FILENAME}'.")
         else:
             print(f"Request failed. Status: {r.status_code}")
@@ -145,6 +156,20 @@ def update():
             r.close()
     print(f"finished fetching image to {FILENAME}")
     gc.collect()  # We really are tight on RAM!
+    if (ota_root is not None and ota_enabled
+            and ota_root != ota_boot.root_hash
+            and ota_root != ota_boot.state.get("rejected")
+            and not ota_boot.state.get("pending")):
+        try:
+            import ota
+            ota.check(ota_root, URL)
+        except Exception as error:
+            print("OTA unavailable:", error)
+        finally:
+            # Release the updater before decoding and allocating panel buffers.
+            import sys
+            sys.modules.pop("ota", None)
+            gc.collect()
 
 
 def draw():

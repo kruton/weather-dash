@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException, Response
-from playwright.async_api import async_playwright
 import asyncio
-from PIL import Image, ImageEnhance
 import io
+
+from fastapi import APIRouter, HTTPException, Response
+from PIL import Image, ImageEnhance
+from playwright.async_api import async_playwright
+
+from .ota import root_header
 from .schedule import refresh_headers
 
 router = APIRouter(prefix="/api")
@@ -87,6 +90,7 @@ async def take_screenshot(
     brightness: float = 1.0,
     quantize: bool = False,
     black: int | None = None,
+    ota_profile: str | None = None,
 ):
     try:
         full_url = f"http://localhost:8000/weather?lat={lat}&long={long}"
@@ -120,6 +124,6 @@ async def take_screenshot(
             screenshot = await asyncio.to_thread(
                 image_enhance, screenshot, color, brightness, quantize, black
             )
-            return Response(screenshot, media_type="image/png", headers=refresh_headers())
+            return Response(screenshot, media_type="image/png", headers={**refresh_headers(), **root_header(ota_profile)})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download signed script package
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: signed-script-package
           path: ota-dist
@@ -180,7 +180,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download signed script package
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: signed-script-package
           path: ota-dist

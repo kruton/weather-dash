@@ -113,7 +113,7 @@ jobs:
           trap 'docker rm "$test_container" >/dev/null' EXIT
           docker cp "$test_container":/app/frontend/dist/. frontend/dist/
           uv run --locked playwright install --with-deps --only-shell chromium
-          uv run --locked pytest tests/test_eink_browser.py
+          uv run --locked pytest tests/test_eink_browser.py tests/test_fleet_browser.py
 
       - name: Test Docker compose
         env:

@@ -59,6 +59,34 @@ boot.confirm()
 assert boot.read_state() == {"active": "b"}
 print("Native signatures, compiled OTA/mrequests imports, streaming install, trial and confirmation passed")
 
+# Exercise the compiled config helper with the real JSON decoder. MicroPython
+# leaves UTF-16 surrogate pairs separate, unlike the host's json module.
+class PanelHardware:
+    @staticmethod
+    def unique_id():
+        return b"abcdefgh"
+
+previous_machine = sys.modules.get("machine")
+sys.modules["machine"] = PanelHardware
+import panel_config
+panel_config.PATH = scratch + "/panel_config.json"
+header = (b'X-Weather-Config: {"schema":1,"version":"' + b"a" * 64
+          + b'","config":{"configured":true,"display":"inky-frame-spectra-7",'
+          b'"panel_profile":"spectra6","name":"Paris \\ud83c\\udf26",'
+          b'"lat":48.86,"long":2.35,"battery_type":"li-poly","battery_cells":1}}')
+assert panel_config.apply([header])
+assert panel_config.current["config"]["name"] == "Paris 🌦"
+assert panel_config.load()["config"]["name"] == "Paris 🌦"
+assert panel_config.request_headers()[b"X-Weather-Device-ID"] == b"6162636465666768"
+assert panel_config.request_headers()[b"X-Weather-Config-Version"] == b"a" * 64
+assert not panel_config.apply([header])
+assert not panel_config.apply([b"X-Weather-Config: invalid"])
+if previous_machine is None:
+    sys.modules.pop("machine", None)
+else:
+    sys.modules["machine"] = previous_machine
+print("Compiled config helper: Unicode, atomic cache, validation, ID and version headers passed")
+
 if len(sys.argv) > 4:
     # Exercise mrequests' real HTTP chunked decoder against the deployed API.
     boot.root_hash = "0" * 64

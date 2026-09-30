@@ -1,31 +1,24 @@
 import asyncio
 import base64
-from typing import Literal
+import os
+import re
+from typing import Annotated, Literal
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
 
+from .fleet import canonical
 from .images import indexed_png
 from .ota import root_header
+from .prepared import setup_image
 from .schedule import refresh_headers
 
 router = APIRouter(prefix="/api")
 
 
-@router.get("/screenshot")
-async def take_screenshot(
-    width: int,
-    height: int,
-    lat: float,
-    long: float,
-    name: str | None = None,
-    panel_profile: Literal[
-        "spectra6", "spectra6-boeber", "generic-2-color-eink", "none"
-    ] = "spectra6",
-    ota_profile: str | None = None,
-):
+async def render_image(width, height, lat, long, name=None, panel_profile="spectra6"):
     try:
         params = {"lat": lat, "long": long, "panel_profile": panel_profile}
         if name:
@@ -77,10 +70,90 @@ async def take_screenshot(
                     )
             finally:
                 await browser.close()
-            return Response(
-                screenshot,
-                media_type="image/png",
-                headers={**refresh_headers(), **root_header(ota_profile)},
-            )
+            return screenshot
     except (PlaywrightError, OSError, ValueError, KeyError, TypeError) as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/screenshot")
+async def take_screenshot(
+    width: int = Query(ge=1, le=2000),
+    height: int = Query(ge=1, le=2000),
+    lat: float | None = None,
+    long: float | None = None,
+    name: str | None = None,
+    panel_profile: Literal[
+        "spectra6", "spectra6-boeber", "generic-2-color-eink", "none"
+    ] = "spectra6",
+    ota_profile: str | None = None,
+    request: Request = None,
+    device_id: Annotated[str | None, Header(alias="X-Weather-Device-ID")] = None,
+    config_version: Annotated[
+        str | None, Header(alias="X-Weather-Config-Version")
+    ] = None,
+    battery_voltage: Annotated[
+        float | None,
+        Header(alias="X-Weather-Battery-Voltage", ge=1, le=6, allow_inf_nan=False),
+    ] = None,
+    power_source: Annotated[
+        Literal["battery", "usb"] | None, Header(alias="X-Weather-Power-Source")
+    ] = None,
+):
+    extra_headers = {}
+    if device_id is not None:
+        if not re.fullmatch(r"[0-9a-fA-F]{2,64}", device_id) or len(device_id) % 2:
+            raise HTTPException(
+                422, "Device ID must be a hexadecimal hardware identifier"
+            )
+        if config_version is not None and not re.fullmatch(
+            r"[0-9a-f]{64}", config_version
+        ):
+            raise HTTPException(422, "Invalid configuration version")
+        registry, cache = request.app.state.fleet()
+        panel = registry.register(
+            device_id.lower(),
+            width,
+            height,
+            config_version,
+            battery_voltage,
+            power_source,
+        )
+        if config_version != panel["config_version"]:
+            extra_headers["X-Weather-Config"] = canonical(
+                {
+                    "schema": 1,
+                    "version": panel["config_version"],
+                    "config": panel["config"],
+                }
+            )
+        if not panel["config"]["configured"]:
+            admin_url = (
+                os.environ.get("WEATHER_PUBLIC_URL", str(request.base_url)).rstrip("/")
+                + "/admin"
+            )
+            image = setup_image(width, height, panel["id"], admin_url)
+            extra_headers["X-Weather-Setup"] = "1"
+        else:
+            try:
+                image, metadata = await cache.get(panel)
+                extra_headers["X-Weather-Image-Time"] = str(metadata["rendered_at"])
+            except HTTPException, OSError, ValueError, KeyError, TypeError:
+                # Config delivery and OTA discovery must remain possible on a render failure.
+                return Response(
+                    status_code=503,
+                    headers={
+                        **refresh_headers(),
+                        **root_header(ota_profile),
+                        **extra_headers,
+                    },
+                )
+    else:
+        if lat is None or long is None:
+            raise HTTPException(
+                422, "Latitude and longitude are required without a device ID"
+            )
+        image = await render_image(width, height, lat, long, name, panel_profile)
+    headers = {**refresh_headers(), **root_header(ota_profile), **extra_headers}
+    if extra_headers.get("X-Weather-Setup"):
+        headers["X-Weather-Next-Refresh"] = str(int(headers["X-Weather-Time"]) + 300)
+    return Response(image, media_type="image/png", headers=headers)

@@ -6,3 +6,6 @@
 # CI-produced signed script package
 ota-dist/*
 !ota-dist/.gitkeep
+
+# Local fleet database and prepared images
+/data/

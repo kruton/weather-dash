@@ -6,6 +6,7 @@ import { HourlyGraph } from './chart';
 import type { Day, DataPoint, ParsedWeatherData, UnitKey } from './types';
 import { getParsedWeatherData } from './fetch';
 import { format } from 'date-fns';
+import { isPanelProfile } from '../../eink/profiles';
 
 const SHOW_LAST_REFRESH = false;
 const DISPLAY_METRICS = true;
@@ -120,6 +121,8 @@ const Weather = () => {
     const [lat] = useQueryState("lat", { defaultValue: "37.7749" });
     const [long] = useQueryState("long", { defaultValue: "-122.4194" });
     const [name] = useQueryState("name");
+    const [profile] = useQueryState("panel_profile");
+    const panelProfile = isPanelProfile(profile) ? profile : null;
     const [units] = useQueryState("units", { defaultValue: "imperial" });
     const [weatherData, setWeatherData] = useState<ParsedWeatherData>();
 
@@ -136,14 +139,14 @@ const Weather = () => {
     if (weatherData == null) { return (<div>Loading...</div>); }
 
     return (
-        <div className={styles["weather-dashboard"]} style={{ padding: `1.5vw` }}>
+        <div className={styles["weather-dashboard"]} data-weather-ready="true" data-panel-profile={panelProfile ?? undefined} style={{ padding: `1.5vw` }}>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Tiny5&display=swap" rel="stylesheet" />
             <LastRefresh />
             <Header cityName={weatherData.location} />
             <Today current={weatherData} />
-            {DISPLAY_HOURLY_GRAPH ? (<HourlyGraph hours={weatherData.hourlyForecast} />) : ""}
+            {DISPLAY_HOURLY_GRAPH ? (<HourlyGraph hours={weatherData.hourlyForecast} panelProfile={panelProfile} />) : ""}
             {DISPLAY_FORECAST ? (<Forecast days={weatherData.forecast} units={weatherData.units} />) : ""}
         </div>
     );

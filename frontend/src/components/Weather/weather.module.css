@@ -354,3 +354,22 @@
   margin-top: 1rem;
   font-size: 0.9rem;
 }
+
+.weather-dashboard[data-panel-profile] {
+  color: #000;
+}
+
+.weather-dashboard[data-panel-profile] .current-date,
+.weather-dashboard[data-panel-profile] .feels-like,
+.weather-dashboard[data-panel-profile] .data-point-label,
+.weather-dashboard[data-panel-profile] .forecast-temps {
+  font-weight: 600;
+}
+
+.weather-dashboard[data-panel-profile] .forecast-day {
+  border: 2px solid #000;
+}
+
+.weather-dashboard[data-panel-profile] .separator {
+  border-top: 2px solid #000;
+}

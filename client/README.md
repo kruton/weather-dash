@@ -4,6 +4,18 @@ This directory contains a client meant to run on the Pimoroni Inky-Frame
 inkylauncher example at
 https://github.com/pimoroni/inky-frame/tree/main/examples/inkylauncher
 
+Set `PANEL_PROFILE` in `weather_config.py` to the epdoptimize palette name:
+`spectra6` for the 7.3-inch Spectra 6 panel (the default), `spectra6-boeber`
+for Böber's alternative calibration, or
+`generic-2-color-eink` for black-and-white rendering. Existing configurations
+without this setting default to `spectra6`. `none` requests a full-color image.
+The `DISPLAY` setting still selects the hardware driver; changing the palette
+does not change the device type.
+
+The server dithers images and exports indexed PNGs with native RGB colors.
+The client decodes with `PNG_POSTERISE` to preserve those pixels; do not use
+`PNG_COPY`, because Spectra hardware indices differ from the drawing palette.
+
 Weather refreshes at 7 am, 11 am, 3 pm, and 7 pm in America/Los_Angeles,
 then sleeps overnight until 7 am. The server owns this schedule; edit
 `REFRESH_HOURS` and `REFRESH_TIMEZONE` in `src/weather_dash/schedule.py` to

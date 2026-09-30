@@ -1,82 +1,17 @@
 import asyncio
-import io
+import base64
+from typing import Literal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Response
-from PIL import Image, ImageEnhance
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
 
+from .images import indexed_png
 from .ota import root_header
 from .schedule import refresh_headers
 
 router = APIRouter(prefix="/api")
-
-# fmt: off
-#
-# From the PicoGraphics code. This shows 'real' colors commented out
-# and 'assumed' colors substituted in. That means that if we use the
-# RGB values from the palette, it will choose the wrong color when we
-# use the real color values. Therefore you need to have it bypass the
-# closest color matching and set it to the palette index.
-#
-# RGB palette[8] = {
-#   /*
-#   {0x2b, 0x2a, 0x37},
-#   {0xdc, 0xcb, 0xba},
-#   {0x35, 0x56, 0x33},
-#   {0x33, 0x31, 0x47},
-#   {0x9c, 0x3b, 0x2e},
-#   {0xd3, 0xa9, 0x34},
-#   {0xab, 0x58, 0x37},
-#   {0xb2, 0x8e, 0x67}
-#   */
-#   {  0,   0,   0}, // black
-#   {255, 255, 255}, // white
-#   {  0, 255,   0}, // green
-#   {  0,   0, 255}, // blue
-#   {255,   0,   0}, // red
-#   {255, 255,   0}, // yellow
-#   {255, 128,   0}, // orange
-#   {220, 180, 200}  // clean / taupe?!
-# };
-
-E_INK_PALETTE = [
-    0x2b, 0x2a, 0x37,  # Black
-    0xdc, 0xcb, 0xba,  # White
-    0x35, 0x56, 0x33,  # Green
-    0x33, 0x31, 0x47,  # Blue
-    0x9c, 0x3b, 0x2e,  # Red
-    0xd3, 0xa9, 0x34,  # Yellow
-    0xab, 0x58, 0x37,  # Orange
-    0xb2, 0x8e, 0x67   # Clean / Taupe
-]
-# fmt: on
-
-
-def image_enhance(
-    png_data: bytes,
-    color: float,
-    brightness: float,
-    quantize: bool,
-    black: int | None,
-) -> bytes:
-    image = Image.open(io.BytesIO(png_data))
-
-    image = ImageEnhance.Color(image).enhance(color)
-    image = ImageEnhance.Brightness(image).enhance(brightness)
-    if black is not None:
-        image = image.point(lambda p: p - black if p > black else 0)
-
-    if quantize:
-        image = image.convert("RGB")
-        quantized_image = Image.new("P", image.size)
-        quantized_image.putpalette(E_INK_PALETTE)
-        image = image.quantize(
-            palette=quantized_image, dither=Image.Dither.FLOYDSTEINBERG
-        )
-
-    data_arr = io.BytesIO()
-    image.save(data_arr, format="PNG")
-    return data_arr.getvalue()
 
 
 @router.get("/screenshot")
@@ -86,16 +21,16 @@ async def take_screenshot(
     lat: float,
     long: float,
     name: str | None = None,
-    color: float = 1.2,
-    brightness: float = 1.0,
-    quantize: bool = False,
-    black: int | None = None,
+    panel_profile: Literal[
+        "spectra6", "spectra6-boeber", "generic-2-color-eink", "none"
+    ] = "spectra6",
     ota_profile: str | None = None,
 ):
     try:
-        full_url = f"http://localhost:8000/weather?lat={lat}&long={long}"
+        params = {"lat": lat, "long": long, "panel_profile": panel_profile}
         if name:
-            full_url += f"&name={name}"
+            params["name"] = name
+        full_url = "http://localhost:8000/weather?" + urlencode(params)
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(
@@ -113,17 +48,39 @@ async def take_screenshot(
                     "--disable-lcd-text",  # Disable hinting for LCD screens
                 ],
             )
-            page = await browser.new_page()
-            await page.set_viewport_size({"width": width, "height": height})
-            await page.goto(full_url)
-            await page.wait_for_selector("text=Loading...", timeout=10000)
-            await page.wait_for_load_state("networkidle")
-            await asyncio.sleep(5)
-            screenshot = await page.screenshot(omit_background=True)
-            await browser.close()
-            screenshot = await asyncio.to_thread(
-                image_enhance, screenshot, color, brightness, quantize, black
+            try:
+                page = await browser.new_page(device_scale_factor=1)
+                await page.set_viewport_size({"width": width, "height": height})
+                await page.goto(full_url)
+                await page.wait_for_selector(
+                    '[data-weather-ready="true"]', timeout=30000
+                )
+                await page.evaluate("""async () => {
+                    await document.fonts.ready;
+                    await Promise.all(Array.from(document.images, image => image.decode()));
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                }""")
+                screenshot = await page.screenshot(omit_background=True)
+                if panel_profile != "none":
+                    processed = await page.evaluate(
+                        "request => window.optimizeWeatherScreenshot(request)",
+                        {
+                            "pngBase64": base64.b64encode(screenshot).decode("ascii"),
+                            "panelProfile": panel_profile,
+                        },
+                    )
+                    screenshot = await asyncio.to_thread(
+                        indexed_png,
+                        base64.b64decode(processed["pngBase64"], validate=True),
+                        processed["deviceColors"],
+                        (width, height),
+                    )
+            finally:
+                await browser.close()
+            return Response(
+                screenshot,
+                media_type="image/png",
+                headers={**refresh_headers(), **root_header(ota_profile)},
             )
-            return Response(screenshot, media_type="image/png", headers={**refresh_headers(), **root_header(ota_profile)})
-    except Exception as e:
+    except (PlaywrightError, OSError, ValueError, KeyError, TypeError) as e:
         raise HTTPException(status_code=500, detail=str(e))

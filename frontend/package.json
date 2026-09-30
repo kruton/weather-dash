@@ -13,6 +13,7 @@
     "acorn": "8.18.0",
     "chart.js": "^4.5.1",
     "date-fns": "^4.4.0",
+    "epdoptimize": "1.3.0",
     "nuqs": "^2.10.1",
     "openmeteo": "^1.2.3",
     "react": "^19.3.0",

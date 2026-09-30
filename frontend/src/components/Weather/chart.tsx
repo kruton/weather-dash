@@ -18,6 +18,7 @@ import { Chart } from 'react-chartjs-2';
 import styles from './weather.module.css';
 import type { HourlyForecastData } from './types';
 import { useEffect, useRef } from 'react';
+import type { PanelProfile } from '../../eink/profiles';
 
 ChartJS.register(
     CategoryScale,
@@ -33,7 +34,9 @@ ChartJS.register(
     BarController
 );
 
-export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
+export const HourlyGraph = ({ hours, panelProfile }: { hours: HourlyForecastData[], panelProfile: PanelProfile | null }) => {
+    const eink = panelProfile !== null;
+    const monochrome = panelProfile === 'generic-2-color-eink';
     const chartRef = useRef<ChartJS | null>(null);
 
     const temperatures = hours.map(x => x.temperature);
@@ -61,6 +64,7 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     font: {
                         family: 'Jost',
                         size: 14,
+                        weight: eink ? 'bold' : 'normal',
                     }
                 },
                 grid: {
@@ -76,6 +80,7 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     font: {
                         family: 'Jost',
                         size: 14,
+                        weight: eink ? 'bold' : 'normal',
                     },
                     autoSkip: false,
                     callback: function (_, index, values) {
@@ -97,6 +102,7 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                     font: {
                         family: 'Jost',
                         size: 14,
+                        weight: eink ? 'bold' : 'normal',
                     },
                     autoSkip: false,
                     callback: function (_, index, values) {
@@ -124,25 +130,30 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
                 type: 'line' as const,
                 label: 'Hourly Temperature',
                 data: temperatures,
-                borderColor: 'rgba(241, 122, 36, 0.9)',
-                borderWidth: 2,
+                borderColor: eink ? (monochrome ? '#000000' : '#ff0000') : 'rgba(241, 122, 36, 0.9)',
+                borderWidth: eink ? 3 : 2,
+                backgroundColor: 'transparent',
+                order: 0,
                 pointRadius: 0, // Hide points
-                fill: true, // Enable filling the area under the line
+                fill: !eink, // Panel charts keep the temperature line separate from bars
                 tension: 0.5,
             },
             {
                 type: 'bar' as const,
                 label: 'Precipitation Probability',
                 data: precipitation,
-                borderColor: 'rgba(26, 111, 176, 1)',
-                borderWidth: {
+                borderColor: eink ? (monochrome ? '#000000' : '#0000ff') : 'rgba(26, 111, 176, 1)',
+                backgroundColor: eink ? (monochrome ? '#ffffff' : '#0000ff') : 'transparent',
+                order: eink ? 1 : 0,
+                borderSkipped: false,
+                borderWidth: eink ? 3 : {
                     top: 2,
                     right: 0,
                     bottom: 0,
                     left: 0
                 },
                 yAxisID: 'y1',
-                barPercentage: 1.0, // Ensures full width
+                barPercentage: monochrome ? 0.65 : 1.0, // Separate outlines on monochrome panels
                 categoryPercentage: 1.0,  // Ensures full width
                 fill: true,
             },
@@ -151,7 +162,7 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
 
     useEffect(() => {
         const chart = chartRef.current;
-        if (!chart) return;
+        if (!chart || eink) return;
 
         const yScale = chart.scales['y'];
         const gradientStart = yScale.getPixelForValue(maxTemp);
@@ -169,7 +180,7 @@ export const HourlyGraph = ({ hours }: { hours: HourlyForecastData[] }) => {
         chart.data.datasets[1].backgroundColor = precipitationGradient;
 
         chart.update();
-    }, [hours, maxTemp, minTemp]);
+    }, [hours, maxTemp, minTemp, eink]);
 
     return (
         <div className={styles["chart-container"]} >

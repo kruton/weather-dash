@@ -38,6 +38,19 @@ class WeatherTests(unittest.TestCase):
     def timestamp(self, value):
         return int(datetime.fromisoformat(value).timestamp())
 
+    def test_default_panel_profile_request(self):
+        self.weather.update()
+        self.assertIn("panel_profile=spectra6", self.requests.get.call_args.args[0])
+
+    def test_monochrome_profile_request(self):
+        self.weather.PANEL_PROFILE = "generic-2-color-eink"
+        self.weather.update()
+        self.assertIn("panel_profile=generic%2d2%2dcolor%2deink", self.requests.get.call_args.args[0])
+
+    def test_draw_preserves_server_dithering(self):
+        self.weather.draw()
+        self.pngdec.PNG().decode.assert_called_once_with(mode=self.pngdec.PNG_POSTERISE)
+
     def test_next_refresh(self):
         cases = (
             ("2026-09-30T19:01:00-07:00", "2026-10-01T07:00:00-07:00", 719),

@@ -1,10 +1,11 @@
 import gc
-import uos
-import machine
 import time
+
+import machine
+import mrequests as requests
 import pngdec
 import sdcard
-import mrequests as requests
+import uos
 
 """
 Weather
@@ -13,10 +14,10 @@ You *must* insert an SD card into Inky Frame!
 We need somewhere to save the jpg for display.
 """
 
-from weather_config import NAME, LAT, LONG, URL
-import weather_config
+import panel_config
+from weather_config import URL
 
-PANEL_PROFILE = getattr(weather_config, "PANEL_PROFILE", "spectra6")
+BATTERY = None  # Launcher samples before enabling Wi-Fi on each update.
 
 FALLBACK_UPDATE_INTERVAL = 240  # Minutes between updates if time sync fails
 UPDATE_INTERVAL = FALLBACK_UPDATE_INTERVAL  # Launcher reads this after draw()
@@ -45,10 +46,6 @@ sd_spi = machine.SPI(
 sd = sdcard.SDCard(sd_spi, machine.Pin(22))
 uos.mount(sd, "/sd")
 gc.collect()  # Claw back some RAM!
-
-def url_escape(s):
-    return ''.join(c if c.isalpha() or c.isdigit() else '%%%02x' % ord(c) for c in s)
-
 
 def sync_clock(headers):
     # Reuse the image response: no separate NTP request or connection.
@@ -119,8 +116,7 @@ def update():
     clock_synced = False
     next_refresh = None
 
-    location = url_escape(NAME)
-    url = f"{URL}/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}&panel_profile={url_escape(PANEL_PROFILE)}"
+    url = f"{URL.rstrip('/')}/api/screenshot?width={WIDTH}&height={HEIGHT}"
     print(f"weather update to {FILENAME} from {url}")
 
     ota_root = None
@@ -135,23 +131,28 @@ def update():
         pass  # Existing, non-OTA firmware keeps working.
     r = None
     try:
-        r = requests.get(url, headers={b"accept": b"image/png"}, save_headers=True)
+        r = requests.get(url, headers=panel_config.request_headers(BATTERY), save_headers=True)
+        panel_config.apply(r.headers)
         clock_synced = sync_clock(r.headers)
         if not clock_synced:
             print("No valid response time; using four-hour refresh interval")
+        for header in r.headers:
+            name, value = header.split(b":", 1)
+            if name.lower() == b"x-weather-ota-root":
+                ota_root = value.strip().decode()
         if r.status_code == 200:
             target = response_next_refresh(r.headers, time.time()) if clock_synced else None
             buf = bytearray(1024)
-            r.save(FILENAME, buf=buf)
+            if (panel_config.current is None or
+                    panel_config.current["config"]["display"] == panel_config.active_display):
+                r.save(FILENAME + ".tmp", buf=buf)
+                uos.rename(FILENAME + ".tmp", FILENAME)
             next_refresh = target
-            for header in r.headers:
-                name, value = header.split(b":", 1)
-                if name.lower() == b"x-weather-ota-root":
-                    ota_root = value.strip().decode()
             print(f"Image saved to '{FILENAME}'.")
         else:
+            err_string = "Error fetching"
             print(f"Request failed. Status: {r.status_code}")
-    except:
+    except (OSError, RuntimeError, ValueError, TypeError):
         err_string = "Error fetching"
         print("Error fetching")
     finally:
@@ -166,7 +167,7 @@ def update():
         try:
             import ota
             ota.check(ota_root, URL)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - OTA failures must not prevent drawing
             print("OTA unavailable:", error)
         finally:
             # Release the updater before decoding and allocating panel buffers.

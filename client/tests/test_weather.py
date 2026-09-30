@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 class WeatherTests(unittest.TestCase):
     def setUp(self):
         self.machine = MagicMock()
+        self.machine.unique_id.return_value = b"abcdefgh"
         self.requests = MagicMock()
         self.pngdec = MagicMock()
         self.clock = SimpleNamespace(
@@ -22,6 +23,8 @@ class WeatherTests(unittest.TestCase):
         modules = dict(machine=self.machine, mrequests=self.requests,
                        pngdec=self.pngdec, sdcard=MagicMock(), uos=MagicMock(),
                        time=self.clock,
+                       panel_config=SimpleNamespace(current=None, active_display="inky-frame-spectra-7",
+                           apply=MagicMock(), request_headers=lambda battery: {b"accept": b"image/png", b"X-Weather-Device-ID": b"6162636465666768"}),
                        weather_config=SimpleNamespace(NAME="San Francisco, California",
                            LAT="37.7749", LONG="-122.4194",
                            URL="https://weather-dash.their.net"))
@@ -38,14 +41,13 @@ class WeatherTests(unittest.TestCase):
     def timestamp(self, value):
         return int(datetime.fromisoformat(value).timestamp())
 
-    def test_default_panel_profile_request(self):
+    def test_device_request_uses_server_settings(self):
         self.weather.update()
-        self.assertIn("panel_profile=spectra6", self.requests.get.call_args.args[0])
-
-    def test_monochrome_profile_request(self):
-        self.weather.PANEL_PROFILE = "generic-2-color-eink"
-        self.weather.update()
-        self.assertIn("panel_profile=generic%2d2%2dcolor%2deink", self.requests.get.call_args.args[0])
+        url = self.requests.get.call_args.args[0]
+        self.assertIn("width=800&height=480", url)
+        for local in ("lat=", "long=", "name=", "panel_profile="):
+            self.assertNotIn(local, url)
+        self.assertEqual(self.requests.get.call_args.kwargs["headers"][b"X-Weather-Device-ID"], b"6162636465666768")
 
     def test_draw_preserves_server_dithering(self):
         self.weather.draw()
@@ -110,7 +112,7 @@ class WeatherTests(unittest.TestCase):
         self.weather.update()
         response.close.assert_called_once()
         self.assertTrue(self.requests.get.call_args.kwargs["save_headers"])
-        self.assertIn("&width=800&height=480", self.requests.get.call_args.args[0])
+        self.assertIn("width=800&height=480", self.requests.get.call_args.args[0])
 
     def test_schedule_is_calculated_after_refresh(self):
         self.weather.clock_synced = True
@@ -223,6 +225,18 @@ class WeatherTests(unittest.TestCase):
         self.weather.draw()
         self.weather.graphics.update.assert_called_once()
         self.assertEqual(self.weather.UPDATE_INTERVAL, 60)
+
+    def test_server_render_failure_can_still_update_scripts(self):
+        response = self.ota_response("b" * 64)
+        response.status_code = 503
+        boot = SimpleNamespace(state={"active": "a"}, root_hash="a" * 64)
+        updater = MagicMock()
+        with patch.dict(sys.modules, {"ota_boot": boot, "ota": updater,
+                "ota_protocol": SimpleNamespace(PROFILE="inky-v1-mpy6")}):
+            self.weather.update()
+        updater.check.assert_called_once_with("b" * 64, "https://weather-dash.their.net")
+        response.save.assert_not_called()
+        self.assertEqual(self.weather.err_string, "Error fetching")
 
 
 if __name__ == "__main__":

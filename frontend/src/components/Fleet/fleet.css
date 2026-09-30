@@ -1,0 +1,28 @@
+.fleet { max-width: 1280px; margin: 0 auto; padding: 32px 24px; text-align: left; color: #172b36; }
+.fleet-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.fleet h1 { margin: 12px 0 4px; font-size: 2rem; }
+.fleet p { color: #4e6470; }
+.fleet a { color: #176578; }
+.fleet-count, .fleet-badge { display: inline-block; border-radius: 6px; background: #e7f0f2; padding: 5px 9px; font-size: .85rem; white-space: nowrap; }
+.fleet-table-wrap { overflow-x: auto; border: 1px solid #d6e1e5; border-radius: 8px; }
+.fleet table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.fleet th, .fleet td { padding: 16px; text-align: left; border-bottom: 1px solid #d6e1e5; vertical-align: top; }
+.fleet th { background: #f4f7f8; font-weight: 600; }
+.fleet tr:last-child td { border-bottom: 0; }
+.fleet code, .fleet small { display: block; margin-top: 5px; color: #4e6470; }
+.fleet code { font-size: .8rem; }
+.fleet button { border: 0; border-radius: 6px; background: #176578; color: white; padding: 10px 16px; cursor: pointer; font: inherit; }
+.fleet button:disabled { opacity: .6; cursor: wait; }
+.fleet button:hover { background: #124f5e; }
+.fleet .fleet-secondary { background: #e7f0f2; color: #172b36; }
+.fleet-empty, .fleet-editor { padding: 24px; border: 1px solid #d6e1e5; border-radius: 8px; margin-top: 24px; }
+.fleet-editor form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.fleet label { display: flex; flex-direction: column; gap: 8px; font-size: .9rem; font-weight: 600; }
+.fleet input, .fleet select { font: inherit; color: #172b36; background: white; border: 1px solid #a8bdc7; border-radius: 5px; padding: 10px; min-width: 0; }
+.fleet-actions { display: flex; gap: 12px; grid-column: 1 / -1; }
+.fleet .fleet-error, .fleet .fleet-failed { color: #973a27; }
+.fleet .fleet-failed { background: #ffede7; }
+.fleet .fleet-notice { padding: 12px; background: #e8f3eb; color: #285436; border-radius: 6px; }
+.fleet-footnote { font-size: .85rem; margin-top: 24px; }
+.fleet-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 640px) { .fleet { padding: 20px 12px; } .fleet-editor form { grid-template-columns: 1fr; } }

@@ -1,11 +1,2 @@
-"""Local settings: preserved across script updates."""
-from picographics import (
-    DISPLAY_INKY_FRAME_SPECTRA_7 as DISPLAY,  # noqa: F401 - exported local setting
-)
-
-NAME = "San Francisco, California"
-LAT = "37.7749"
-LONG = "-122.4194"
+"""Dashboard connection: all panel settings are managed on the server."""
 URL = "https://weather-dash.their.net"
-# epdoptimize palette: also "spectra6-boeber" or "generic-2-color-eink"
-PANEL_PROFILE = "spectra6"

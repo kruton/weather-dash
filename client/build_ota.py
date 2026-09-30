@@ -7,10 +7,9 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import ota_protocol as protocol
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-
-import ota_protocol as protocol
 from prepare_launcher import prepare
 
 CLIENT = Path(__file__).resolve().parent
@@ -32,11 +31,6 @@ def build(source, mrequests, compiler, output, key):
         prepare(source, prepared)
         launcher = (prepared / "main.py").read_text()
         # The launcher is imported from a selected slot by the fixed main.py.
-        old = ('from picographics import \\\n'
-               '    DISPLAY_INKY_FRAME_SPECTRA_7 as DISPLAY  # 7.3" Spectra')
-        if old not in launcher:
-            raise ValueError("Unknown launcher display configuration")
-        launcher = launcher.replace(old, "from weather_config import DISPLAY")
         launcher = launcher.replace("graphics = PicoGraphics(DISPLAY)\n", "graphics = PicoGraphics(DISPLAY)\ngraphics.set_blocking(True)\n")
         launcher = launcher.replace("import gc\n", "import gc\nimport ota_boot\n", 1)
         launcher = launcher.replace("    graphics.update()\n", "    graphics.set_blocking(True)\n    graphics.update()\n    ota_boot.confirm()\n", 1)
@@ -45,7 +39,8 @@ def build(source, mrequests, compiler, output, key):
         (prepared / "launcher.py").write_text(launcher)
         sources = {"launcher.mpy": prepared / "launcher.py",
                    "inky_helper.mpy": prepared / "inky_helper.py",
-                   "weather.mpy": CLIENT / "weather.py", "ota.mpy": CLIENT / "ota.py"}
+                   "weather.mpy": CLIENT / "weather.py", "ota.mpy": CLIENT / "ota.py",
+                   "panel_config.mpy": CLIENT / "panel_config.py"}
         for path in sorted(Path(mrequests).glob("*.py")):
             sources["lib/mrequests/" + path.with_suffix(".mpy").name] = path
         if "lib/mrequests/__init__.mpy" not in sources:

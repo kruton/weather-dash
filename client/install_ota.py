@@ -29,7 +29,7 @@ def install(inky, bundle):
             raise ValueError("Corrupt package: " + path)
     launcher = inky / "examples/inkylauncher"
     # The root launcher must not shadow slot modules. Other legacy apps remain.
-    for name in ("main.py", "launcher.py", "launcher.mpy", "weather.py", "weather.mpy", "inky_helper.py", "inky_helper.mpy"):
+    for name in ("main.py", "launcher.py", "launcher.mpy", "weather.py", "weather.mpy", "inky_helper.py", "inky_helper.mpy", "panel_config.py", "panel_config.mpy"):
         (launcher / name).unlink(missing_ok=True)
     slot = launcher / "ota/a"
     if slot.exists():

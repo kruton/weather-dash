@@ -4,20 +4,39 @@ This directory contains a client meant to run on the Pimoroni Inky-Frame
 inkylauncher example at
 https://github.com/pimoroni/inky-frame/tree/main/examples/inkylauncher
 
-Set `PANEL_PROFILE` in `weather_config.py` to the epdoptimize palette name:
-`spectra6` for the 7.3-inch Spectra 6 panel (the default), `spectra6-boeber`
-for Böber's alternative calibration, or
-`generic-2-color-eink` for black-and-white rendering. Existing configurations
-without this setting default to `spectra6`. `none` requests a full-color image.
-The `DISPLAY` setting still selects the hardware driver; changing the palette
-does not change the device type.
+Set only `URL` in `weather_config.py`, and keep Wi-Fi credentials in
+`secrets.py`. Panels identify themselves with `machine.unique_id()` and
+register with the server on their first weather request. Open `/admin` on the
+dashboard to set their location, palette, hardware profile, and battery
+settings. Until then, the panel displays setup instructions and checks in every
+five minutes.
 
-The server dithers images and exports indexed PNGs with native RGB colors.
-The client decodes with `PNG_POSTERISE` to preserve those pixels; do not use
+Settings received in `X-Weather-Config` replace `/panel_config.json`
+atomically.  The client advertises its cached version; unchanged settings
+produce no header payload and no flash write. This JSON is data, never
+executable Python, and lives outside signed OTA slots. Malformed settings and
+interrupted writes preserve the last good configuration. Existing
+`weather_config.py` files are accepted, but old `NAME`, `LAT`, `LONG`,
+`PANEL_PROFILE`, and `DISPLAY` values are ignored.
+
+The launcher loads the server-owned hardware profile before creating graphics.
+The boot default is the current 7.3-inch Spectra 6 Inky Frame; additional
+hardware drivers are deferred. The server prepares weather images before each
+scheduled check-in, so normal downloads do not wait for browser rendering or
+weather APIs.
+
+Battery telemetry is sampled before Wi-Fi is enabled because VSYS shares a pin
+with the radio interface. The server retains the last battery voltage and time,
+identifies USB power separately, and estimates percentage using the chemistry
+and cell count selected in the admin page. Unknown chemistry reports volts
+only.
+
+The server dithers images and exports indexed PNGs with native RGB colors.  The
+client decodes with `PNG_POSTERISE` to preserve those pixels; do not use
 `PNG_COPY`, because Spectra hardware indices differ from the drawing palette.
 
-Weather refreshes at 7 am, 11 am, 3 pm, and 7 pm in America/Los_Angeles,
-then sleeps overnight until 7 am. The server owns this schedule; edit
+Weather refreshes at 7 am, 11 am, 3 pm, and 7 pm in America/Los_Angeles, then
+sleeps overnight until 7 am. The server owns this schedule; edit
 `REFRESH_HOURS` and `REFRESH_TIMEZONE` in `src/weather_dash/schedule.py` to
 change it. It uses the pinned IANA `tzdata` package, including daylight saving
 rules. Updating the server's timezone data needs no client firmware change.
@@ -28,12 +47,12 @@ Wake times are rounded up to whole minutes; downloading and drawing take
 additional time before the new image is visible.
 
 The HTTPS image response contains `X-Weather-Time` (current Unix UTC seconds)
-and `X-Weather-Next-Refresh` (the next scheduled instant, also Unix UTC seconds).
-The server computes both after rendering and marks the response `no-store`.
-The client sets its UTC clock from this response, then calculates the remaining
-sleep after the panel finishes drawing. No timezone library or extra time
-request is needed on the device. If drawing crosses the target, it retries in
-one minute.
+and `X-Weather-Next-Refresh` (the next scheduled instant, also Unix UTC
+seconds).  The server computes both after rendering and marks the response
+`no-store`.  The client sets its UTC clock from this response, then calculates
+the remaining sleep after the panel finishes drawing. No timezone library or
+extra time request is needed on the device. If drawing crosses the target, it
+retries in one minute.
 
 The client still accepts an HTTP `Date` header for clock synchronization.
 Missing, invalid, past, or excessively distant wake timestamps, clock failures,
@@ -70,34 +89,36 @@ Run client checks with `python3 -m unittest discover -s client/tests`.
 ### Signed script updates
 
 OTA firmware boots a fixed recovery module and selects `/ota/a` or `/ota/b`.
-The launcher, weather app, helper, updater and mrequests dependency are portable
-MicroPython 1.29.0 bytecode. Local `weather_config.py`, Wi-Fi `secrets.py`, SD
-images and launcher selection remain outside these slots.
+The launcher, weather app, helper, updater and mrequests dependency are
+portable MicroPython 1.29.0 bytecode. Local `weather_config.py`, server config
+cache, Wi-Fi `secrets.py`, SD images and launcher selection remain outside
+these slots.
 
-The normal screenshot request advertises `ota_profile=inky-v1-mpy6`. A compatible
-server adds `X-Weather-OTA-Root`, computed from the compiled script bytes in its
-own deployed GHCR image. Matching roots require no second request and do not
-load the updater. On a mismatch, the frame sends its hash map to
+The normal screenshot request advertises `ota_profile=inky-v1-mpy6`. A
+compatible server adds `X-Weather-OTA-Root`, computed from the compiled script
+bytes in its own deployed GHCR image. Matching roots require no second request
+and do not load the updater. On a mismatch, the frame sends its hash map to
 `POST /api/ota/update`. The multipart response contains the complete signed
 manifest and only changed files. Unchanged files are copied and rehashed; files
 removed from the manifest are omitted from the new slot.
 
-The frame uses 1 KiB reads, validates ECDSA P-256/SHA-256 signatures with a native
-mbedTLS module, checks bytecode compatibility, paths, sizes and available space,
-and verifies every script hash before committing a pending slot. Limits are
-16 KiB for the manifest, 64 files, 128 KiB per file and 256 KiB of script data.
-OTA reads have a 90 second time budget and a 30 second socket timeout.
-An interrupted download leaves the active slot untouched and retries on the next
-scheduled refresh. The updater never overwrites a currently running script.
+The frame uses 1 KiB reads, validates ECDSA P-256/SHA-256 signatures with a
+native mbedTLS module, checks bytecode compatibility, paths, sizes and
+available space, and verifies every script hash before committing a pending
+slot. Limits are 16 KiB for the manifest, 64 files, 128 KiB per file and 256
+KiB of script data.  OTA reads have a 90 second time budget and a 30 second
+socket timeout.  An interrupted download leaves the active slot untouched and
+retries on the next scheduled refresh. The updater never overwrites a currently
+running script.
 
-Activation happens on the next wake. Battery sleep cuts power normally; USB sleep
-resets the interpreter after the scheduled sleep returns. A trial is recorded
-before importing the new launcher. The launcher confirms it after initialization
-and a completed blocking panel draw. An exception resets to recovery; an
-unconfirmed trial rolls back on the next boot and records its rejected root.
-There is no watchdog in this version, so a hung trial needs a reset before
-recovery runs. A previously signed version can be deployed deliberately to roll
-back; there is no monotonic anti-rollback counter.
+Activation happens on the next wake. Battery sleep cuts power normally; USB
+sleep resets the interpreter after the scheduled sleep returns. A trial is
+recorded before importing the new launcher. The launcher confirms it after
+initialization and a completed blocking panel draw. An exception resets to
+recovery; an unconfirmed trial rolls back on the next boot and records its
+rejected root.  There is no watchdog in this version, so a hung trial needs a
+reset before recovery runs. A previously signed version can be deployed
+deliberately to roll back; there is no monotonic anti-rollback counter.
 
 ### Production setup
 
@@ -115,11 +136,12 @@ back; there is no monotonic anti-rollback counter.
    pull requests use an ephemeral test key and cannot update production frames.
    Keep the signing key stable: changing the trust key or frozen recovery code
    requires reflashing firmware.
-3. Flash the `with-filesystem.uf2` artifact once to install the initial slots and
-   fixed bootstrap. Back up local settings first; filesystem UF2 flashing replaces
-   the filesystem. Set `weather_config.py` for location, URL and display, restore
-   `secrets.py`, and select Weather with button B. Subsequent deployments update
-   scripts over the network while preserving these settings.
+3. Flash the `with-filesystem.uf2` artifact once to install the initial slots
+   and fixed bootstrap. Back up local settings first; filesystem UF2 flashing
+   replaces the filesystem. Set only `URL` in `weather_config.py`, restore
+   `secrets.py`, select Weather with button B, and configure the panel in
+   `/admin`. Subsequent deployments update scripts over the network while
+   preserving these settings.
 4. Test both battery and USB operation on a physical frame before deploying to
    your production fleet. Firmware or native module changes still require UF2.
 
@@ -140,12 +162,13 @@ uv run --project .. python build_ota.py \
 uv run --project .. python install_ota.py /path/to/isolated/inky-frame /tmp/ota-dist
 ```
 
-`install_ota.py` modifies only the checkout supplied as its argument. The normal
-CI build uses an isolated, pinned Inky-Frame checkout; your launcher repository
-does not need a separate patch commit. The package builder normalizes source
-paths and retains assertions and diagnostics. CI checks deterministic bytecode,
-Merkle roots, the native signature verifier and streaming installation using the
-matching unix MicroPython runtime, in addition to host and API tests.
+`install_ota.py` modifies only the checkout supplied as its argument. The
+normal CI build uses an isolated, pinned Inky-Frame checkout; your launcher
+repository does not need a separate patch commit. The package builder
+normalizes source paths and retains assertions and diagnostics. CI checks
+deterministic bytecode, Merkle roots, the native signature verifier and
+streaming installation using the matching unix MicroPython runtime, in addition
+to host and API tests.
 
 Changes to the frozen recovery/protocol contract must bump the firmware profile
 and require a new initial UF2; they cannot silently change the API expected by

@@ -1,6 +1,7 @@
 import './App.css'
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import Weather from './components/Weather/Weather'
+import Fleet from './components/Fleet/Fleet'
 import { useState } from 'react';
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/weather" element={<Weather />} />
+      <Route path="/admin/*" element={<Fleet />} />
     </Routes>
   )
 }
@@ -30,6 +32,7 @@ const Home = () => {
   return (
     <div className="home">
       <h1>Welcome to the Weather Dashboard</h1>
+      <a href="/admin">Manage panels</a>
       <form onSubmit={handleSubmit}>
         <input
           type="text"

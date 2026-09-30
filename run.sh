@@ -32,6 +32,8 @@ docker run \
     --rm \
     --volume .:/app \
     --volume /app/.venv \
+    --volume weather-dash-fleet:/data \
+    --env WEATHER_DATA_DIR=/data \
     --publish 8000:8000 \
     --network host \
     $INTERACTIVE \

@@ -7,6 +7,10 @@ services:
     # Host the FastAPI application on port 8000
     ports:
       - "8000:8000"
+    environment:
+      WEATHER_DATA_DIR: /data
+    volumes:
+      - fleet-data:/data
 
     develop:
       # Create a `watch` configuration to update the app
@@ -20,7 +24,10 @@ services:
           # different platform in the container
           ignore:
             - .venv/
+            - data/
 
         # Rebuild the image if dependencies change by checking uv.lock
         - action: rebuild
           path: ./uv.lock
+volumes:
+  fleet-data:

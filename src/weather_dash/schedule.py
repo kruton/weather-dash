@@ -29,6 +29,22 @@ def next_refresh(now: datetime) -> datetime:
     raise ValueError("No refresh hours configured")
 
 
+def previous_refresh(now: datetime) -> datetime:
+    """Most recent scheduled check-in, including the current instant."""
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must include a timezone")
+    now = now.astimezone(UTC)
+    local_date = now.astimezone(REFRESH_ZONE).date()
+    for day in range(2):
+        for hour in reversed(REFRESH_HOURS):
+            candidate = datetime.combine(
+                local_date - timedelta(days=day), time(hour), REFRESH_ZONE
+            ).astimezone(UTC)
+            if candidate <= now:
+                return candidate
+    raise ValueError("No refresh hours configured")
+
+
 def refresh_headers(now: datetime | None = None) -> dict[str, str]:
     # Calculate after rendering so server-side screenshot delays do not shift
     # the device clock or make the chosen refresh time stale.

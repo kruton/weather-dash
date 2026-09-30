@@ -1,8 +1,13 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from .api_routes import router
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from .ota import get_package
+from .ota import router as ota_router
 
 
 class SPAStaticFiles(StaticFiles):
@@ -17,7 +22,12 @@ class SPAStaticFiles(StaticFiles):
 
 
 def get_app() -> FastAPI:
-    app = FastAPI(openapi_url=None)
+    @asynccontextmanager
+    async def lifespan(app):
+        get_package()  # Verify signed assets before accepting requests.
+        yield
+
+    app = FastAPI(openapi_url=None, lifespan=lifespan)
 
     @app.get("/healthz")
     def kubernetes_liveness_probe():
@@ -29,6 +39,7 @@ def get_app() -> FastAPI:
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     app.include_router(router)
+    app.include_router(ota_router)
     app.mount(
         "/", SPAStaticFiles(directory="./frontend/dist", html=True), name="static"
     )

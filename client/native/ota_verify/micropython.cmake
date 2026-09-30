@@ -1,0 +1,4 @@
+add_library(usermod_ota_verify INTERFACE)
+target_sources(usermod_ota_verify INTERFACE ${CMAKE_CURRENT_LIST_DIR}/ota_verify.c)
+target_include_directories(usermod_ota_verify INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(usermod INTERFACE usermod_ota_verify)

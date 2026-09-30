@@ -21,7 +21,10 @@ class WeatherTests(unittest.TestCase):
         )
         modules = dict(machine=self.machine, mrequests=self.requests,
                        pngdec=self.pngdec, sdcard=MagicMock(), uos=MagicMock(),
-                       time=self.clock)
+                       time=self.clock,
+                       weather_config=SimpleNamespace(NAME="San Francisco, California",
+                           LAT="37.7749", LONG="-122.4194",
+                           URL="https://weather-dash.their.net"))
         spec = importlib.util.spec_from_file_location(
             "weather", Path(__file__).resolve().parents[1] / "weather.py")
         self.weather = importlib.util.module_from_spec(spec)
@@ -155,6 +158,58 @@ class WeatherTests(unittest.TestCase):
         self.assertEqual(self.weather.UPDATE_INTERVAL, 240)
         self.clock.time.assert_not_called()
         self.weather.graphics.update.assert_called_once()
+
+    def ota_response(self, root):
+        now = self.timestamp("2026-09-30T19:01:00-07:00")
+        self.clock.time.return_value = now
+        response = self.requests.get.return_value
+        response.status_code = 200
+        response.headers = [f"X-Weather-Time: {now}".encode(),
+                            f"X-Weather-Next-Refresh: {now + 3600}".encode(),
+                            f"X-Weather-OTA-Root: {root}".encode()]
+        return response
+
+    def test_current_root_does_not_load_updater(self):
+        root = "a" * 64
+        response = self.ota_response(root)
+        boot = SimpleNamespace(state={"active": "a"}, root_hash=root)
+        updater = MagicMock()
+        with patch.dict(sys.modules, {"ota_boot": boot, "ota": updater,
+                "ota_protocol": SimpleNamespace(PROFILE="inky-v1-mpy6")}):
+            self.weather.update()
+            self.assertIs(sys.modules["ota"], updater)
+        updater.check.assert_not_called()
+        response.close.assert_called_once()
+        self.assertIn("ota_profile=inky-v1-mpy6", self.requests.get.call_args.args[0])
+
+    def test_ota_runs_after_image_closes_and_time_counts_toward_sleep(self):
+        response = self.ota_response("b" * 64)
+        boot = SimpleNamespace(state={"active": "a"}, root_hash="a" * 64)
+        updater = MagicMock()
+        def update(*args):
+            response.close.assert_called_once()
+            self.weather.graphics.update.assert_not_called()
+            self.clock.time.return_value += 120
+        updater.check.side_effect = update
+        with patch.dict(sys.modules, {"ota_boot": boot, "ota": updater,
+                "ota_protocol": SimpleNamespace(PROFILE="inky-v1-mpy6")}):
+            self.weather.update()
+            self.assertNotIn("ota", sys.modules)
+        updater.check.assert_called_once_with("b" * 64, "https://weather-dash.their.net")
+        self.weather.draw()
+        self.assertEqual(self.weather.UPDATE_INTERVAL, 58)
+
+    def test_ota_failure_still_draws_on_schedule(self):
+        self.ota_response("b" * 64)
+        boot = SimpleNamespace(state={"active": "a"}, root_hash="a" * 64)
+        updater = MagicMock()
+        updater.check.side_effect = OSError("Interrupted OTA")
+        with patch.dict(sys.modules, {"ota_boot": boot, "ota": updater,
+                "ota_protocol": SimpleNamespace(PROFILE="inky-v1-mpy6")}):
+            self.weather.update()
+        self.weather.draw()
+        self.weather.graphics.update.assert_called_once()
+        self.assertEqual(self.weather.UPDATE_INTERVAL, 60)
 
 
 if __name__ == "__main__":

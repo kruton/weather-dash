@@ -40,7 +40,7 @@ jobs:
         run: |
           changed="$IS_TAG"
           if [[ "$IS_TAG" != "true" && "$SHOULD_CHECK" == "true" ]]; then
-            if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- client/; then
+            if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- client/ .github/workflows/micropython.yaml .github/workflows/script-package.yaml; then
               changed=false
             else
               changed=true
@@ -48,12 +48,29 @@ jobs:
           fi
           echo "micropython=$changed" >> "$GITHUB_OUTPUT"
 
+  script-package:
+    uses: ./.github/workflows/script-package.yaml
+    secrets: inherit
+
   test:
+    needs: script-package
     name: "build and test image"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download signed script package
+        uses: actions/download-artifact@v7
+        with:
+          name: signed-script-package
+          path: ota-dist
+
+      - uses: astral-sh/setup-uv@v7
+      - name: Test server OTA package and schedule
+        run: |
+          mkdir -p frontend/dist
+          uv run --locked pytest tests/test_ota.py tests/test_schedule.py
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -107,9 +124,10 @@ jobs:
 
   micropython:
     name: "build MicroPython"
-    needs: changes
+    needs: [changes, script-package]
     if: needs.changes.outputs.micropython == 'true'
     uses: ./.github/workflows/micropython.yaml
+    secrets: inherit
 
   required:
     name: Required
@@ -117,16 +135,19 @@ jobs:
     if: always()
     needs:
       - changes
+      - script-package
       - test
       - micropython
     steps:
       - name: Verify required jobs
         env:
+          PACKAGE_RESULT: ${{ needs.script-package.result }}
           CHANGES_RESULT: ${{ needs.changes.result }}
           TEST_RESULT: ${{ needs.test.result }}
           MICROPYTHON_RESULT: ${{ needs.micropython.result }}
           MICROPYTHON_CHANGED: ${{ needs.changes.outputs.micropython }}
         run: |
+          [[ "$PACKAGE_RESULT" == "success" ]]
           [[ "$CHANGES_RESULT" == "success" ]]
           [[ "$TEST_RESULT" == "success" ]]
           if [[ "$MICROPYTHON_CHANGED" == "true" ]]; then
@@ -157,6 +178,12 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download signed script package
+        uses: actions/download-artifact@v7
+        with:
+          name: signed-script-package
+          path: ota-dist
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1

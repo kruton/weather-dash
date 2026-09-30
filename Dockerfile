@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project --no-dev
 
-COPY --exclude=frontend . /app
+COPY --exclude=frontend --exclude=ota-dist . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable \
     && .venv/bin/playwright install --only-shell chromium
@@ -82,6 +82,7 @@ COPY --from=python-builder /app/.venv /app/.venv
 COPY --from=python-builder /ms-playwright /ms-playwright
 COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 COPY log_conf.yaml /app/log_conf.yaml
+COPY ota-dist/ /app/ota/
 
 ENV PATH="/app/.venv/bin:${PATH}" \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright

@@ -20,8 +20,10 @@ LAT = "37.7749"  # Latitude for weather
 LONG = "-122.4194"  # Longitude for weather
 FALLBACK_UPDATE_INTERVAL = 240  # Minutes between updates if time sync fails
 UPDATE_INTERVAL = FALLBACK_UPDATE_INTERVAL  # Launcher reads this after draw()
-REFRESH_HOURS = (7, 11, 15, 19)  # America/Los_Angeles, including daylight saving
 clock_synced = False
+next_refresh = None
+# HTTP timestamps use Unix seconds; older MicroPython builds use a 2000 epoch.
+UNIX_EPOCH_OFFSET = 946684800 if time.gmtime(0)[0] == 2000 else 0
 
 
 graphics = None
@@ -51,14 +53,24 @@ def url_escape(s):
 def sync_clock(headers):
     # Reuse the image response: no separate NTP request or connection.
     date = None
+    server_time = None
     age = 0
     try:
         for header in headers:
             name, value = header.split(b":", 1)
             if name.lower() == b"date":
                 date = value.strip().split()
+            elif name.lower() == b"x-weather-time":
+                server_time = int(value.strip()) - UNIX_EPOCH_OFFSET
             elif name.lower() == b"age":
                 age = max(0, int(value.strip()))
+        if server_time is not None:
+            tm = time.gmtime(server_time + age)
+            if not 2024 <= tm[0] < 2100:
+                return False
+            machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1,
+                                    tm[3], tm[4], tm[5], 0))
+            return True
         if date is None or len(date) != 6 or date[5] != b"GMT":
             return False
         months = (b"Jan", b"Feb", b"Mar", b"Apr", b"May", b"Jun",
@@ -75,44 +87,37 @@ def sync_clock(headers):
         machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1,
                                 tm[3], tm[4], tm[5], 0))
         return True
-    except (ValueError, TypeError, OSError):
+    except (ValueError, TypeError, OSError, OverflowError):
         return False
 
 
-def pacific_offset(timestamp):
-    # US daylight saving rules since 2007: March's second Sunday at 10 UTC
-    # through November's first Sunday at 09 UTC. Keep the device clock in UTC.
-    year, month, day, hour, minute, second, weekday, yearday = time.gmtime(timestamp)
-    if 3 < month < 11:
-        return -7 * 3600
-    if month == 3 or month == 11:
-        first_weekday = (weekday - day + 1) % 7
-        first_sunday = 1 + (6 - first_weekday) % 7
-        if month == 3:
-            if (day, hour) >= (first_sunday + 7, 10):
-                return -7 * 3600
-        elif (day, hour) < (first_sunday, 9):
-            return -7 * 3600
-    return -8 * 3600
+def response_next_refresh(headers, now):
+    try:
+        for header in headers:
+            name, value = header.split(b":", 1)
+            if name.lower() == b"x-weather-next-refresh":
+                timestamp = int(value.strip()) - UNIX_EPOCH_OFFSET
+                if 0 < timestamp - now <= 26 * 3600:
+                    return timestamp
+                return None
+    except (ValueError, TypeError, OverflowError):
+        pass
+    return None
 
 
 def minutes_until_refresh(now):
-    # Check UTC hour boundaries to handle both DST transitions automatically.
-    candidate = (int(now) // 3600 + 1) * 3600
-    for _ in range(49):
-        local_hour = time.gmtime(candidate + pacific_offset(candidate))[3]
-        if local_hour in REFRESH_HOURS:
-            # The launcher's RTC timer accepts whole minutes. Round up so an
-            # early wake cannot cause a duplicate refresh before the target.
-            return max(1, int((candidate - now + 59) // 60))
-        candidate += 3600
-    return FALLBACK_UPDATE_INTERVAL
+    if next_refresh is None:
+        return FALLBACK_UPDATE_INTERVAL
+    # If drawing crossed the target, retry in one minute rather than sleeping
+    # through the morning refresh. Otherwise round up to whole RTC minutes.
+    return max(1, int((next_refresh - now + 59) // 60))
 
 
 def update():
-    global err_string, clock_synced
+    global err_string, clock_synced, next_refresh
 
     clock_synced = False
+    next_refresh = None
 
     location = url_escape(NAME)
     url = f"https://weather-dash.their.net/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}"
@@ -125,8 +130,10 @@ def update():
         if not clock_synced:
             print("No valid response time; using four-hour refresh interval")
         if r.status_code == 200:
+            target = response_next_refresh(r.headers, time.time()) if clock_synced else None
             buf = bytearray(1024)
             r.save(FILENAME, buf=buf)
+            next_refresh = target
             print(f"Image saved to '{FILENAME}'.")
         else:
             print(f"Request failed. Status: {r.status_code}")

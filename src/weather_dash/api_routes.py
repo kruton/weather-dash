@@ -3,6 +3,7 @@ from playwright.async_api import async_playwright
 import asyncio
 from PIL import Image, ImageEnhance
 import io
+from .schedule import refresh_headers
 
 router = APIRouter(prefix="/api")
 
@@ -119,6 +120,6 @@ async def take_screenshot(
             screenshot = await asyncio.to_thread(
                 image_enhance, screenshot, color, brightness, quantize, black
             )
-            return Response(screenshot, media_type="image/png")
+            return Response(screenshot, media_type="image/png", headers=refresh_headers())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

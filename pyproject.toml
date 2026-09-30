@@ -5,7 +5,7 @@ description = "A dashboard for weather display on an ePaper display."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi[standard]==0.142.1",
+    "fastapi[standard]==0.142.2",
     "pillow==12.3.0",
     "playwright==1.63.0",
     "prometheus-client==0.26.0",

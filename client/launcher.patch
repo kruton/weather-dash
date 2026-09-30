@@ -1,0 +1,75 @@
+--- a/main.py
++++ b/main.py
+@@ -1,4 +1,5 @@
+ import gc
++import network
+ import time
+ 
+ import inky_helper as ih
+@@ -58,7 +59,7 @@
+     graphics.set_pen(BLUE)
+     graphics.rectangle(30, HEIGHT - (280 + y_offset), WIDTH - 150, 50)
+     graphics.set_pen(1)
+-    graphics.text("B. Word Clock", 35, HEIGHT - (265 + y_offset), 600, 3)
++    graphics.text("B. Weather", 35, HEIGHT - (265 + y_offset), 600, 3)
+ 
+     graphics.set_pen(GREEN)
+     graphics.rectangle(30, HEIGHT - (220 + y_offset), WIDTH - 200, 50)
+@@ -105,7 +106,7 @@
+             reset()
+         if ih.inky_frame.button_b.read():
+             ih.inky_frame.button_b.led_on()
+-            ih.update_state("word_clock")
++            ih.update_state("weather")
+             time.sleep(0.5)
+             reset()
+         if ih.inky_frame.button_c.read():
+@@ -149,8 +150,8 @@
+ 
+ try:
+     from secrets import WIFI_PASSWORD, WIFI_SSID
+-    ih.network_connect(WIFI_SSID, WIFI_PASSWORD)
+ except ImportError:
++    WIFI_SSID = WIFI_PASSWORD = None
+     print("Create secrets.py with your WiFi credentials")
+ 
+ # Get some memory back, we really need it!
+@@ -164,8 +165,16 @@
+ print(file)
+ 
+ while True:
+-    ih.app.update()
+-    ih.led_warn.on()
++    try:
++        if WIFI_SSID is not None:
++            ih.network_connect(WIFI_SSID, WIFI_PASSWORD)
++        ih.app.update()
++    finally:
++        # Networking is finished before PNG decoding and panel refresh.
++        network.WLAN(network.STA_IF).active(False)
++        ih.stop_network_led()
++        ih.clear_button_leds()
++        ih.led_warn.off()
+     ih.app.draw()
+     ih.led_warn.off()
+     ih.sleep(ih.app.UPDATE_INTERVAL)
+--- a/inky_helper.py
++++ b/inky_helper.py
+@@ -62,6 +62,17 @@
+ 
+ 
+ def sleep(t):
++    if t > 255:
++        # Use an alarm for overnight sleeps beyond the countdown timer limit.
++        rtc.enable_timer_interrupt(False)
++        rtc.clear_timer_flag()
++        inky_frame.pico_rtc_to_pcf()
++        inky_frame.sleep_for(t)
++        return
++
++    # Clear the previous alarm before returning to the countdown timer.
++    rtc.enable_alarm_interrupt(False)
++    rtc.clear_alarm_flag()
+     # Time to have a little nap until the next update
+     rtc.clear_timer_flag()
+     rtc.set_timer(t, ttp=rtc.TIMER_TICK_1_OVER_60HZ)

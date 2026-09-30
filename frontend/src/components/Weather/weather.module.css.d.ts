@@ -6,41 +6,41 @@
  * https://npmjs.com/vite-css-modules
  */
 
-const weatherDashboard: string;
-const header: string;
-const lastRefresh: string;
-const location: string;
-const currentDate: string;
-const todayContainer: string;
-const currentTemperature: string;
-const currentIcon: string;
-const currentTemp: string;
-const temperatureUnit: string;
-const feelsLike: string;
-const dataPoints: string;
-const dataPoint: string;
-const dataPointImgContainer: string;
-const dataPointIcon: string;
-const dataPointData: string;
-const dataPointLabel: string;
-const dataPointMeasurement: string;
-const dataPointUnit: string;
-const forecast: string;
-const forecastDay: string;
-const forecastDayName: string;
-const forecastIcon: string;
-const forecastTemps: string;
-const low: string;
-const high: string;
-const currentWeather: string;
-const chartContainer: string;
-const separator: string;
-const moonPhaseIcon: string;
-const moonPhaseContainer: string;
-const container: string;
-const rowContainer: string;
-const columnContainer: string;
-const errorMessage: string;
+declare const weatherDashboard: string;
+declare const header: string;
+declare const lastRefresh: string;
+declare const location: string;
+declare const currentDate: string;
+declare const todayContainer: string;
+declare const currentTemperature: string;
+declare const currentIcon: string;
+declare const currentTemp: string;
+declare const temperatureUnit: string;
+declare const feelsLike: string;
+declare const dataPoints: string;
+declare const dataPoint: string;
+declare const dataPointImgContainer: string;
+declare const dataPointIcon: string;
+declare const dataPointData: string;
+declare const dataPointLabel: string;
+declare const dataPointMeasurement: string;
+declare const dataPointUnit: string;
+declare const forecast: string;
+declare const forecastDay: string;
+declare const forecastDayName: string;
+declare const forecastIcon: string;
+declare const forecastTemps: string;
+declare const low: string;
+declare const high: string;
+declare const currentWeather: string;
+declare const chartContainer: string;
+declare const separator: string;
+declare const moonPhaseIcon: string;
+declare const moonPhaseContainer: string;
+declare const container: string;
+declare const rowContainer: string;
+declare const columnContainer: string;
+declare const errorMessage: string;
 
 export {
 	header,
@@ -52,40 +52,41 @@ export {
 	container
 };
 
-export default {
-	"weather-dashboard": weatherDashboard,
-	header,
-	"last-refresh": lastRefresh,
-	location,
-	"current-date": currentDate,
-	"today-container": todayContainer,
-	"current-temperature": currentTemperature,
-	"current-icon": currentIcon,
-	"current-temp": currentTemp,
-	"temperature-unit": temperatureUnit,
-	"feels-like": feelsLike,
-	"data-points": dataPoints,
-	"data-point": dataPoint,
-	"data-point-img-container": dataPointImgContainer,
-	"data-point-icon": dataPointIcon,
-	"data-point-data": dataPointData,
-	"data-point-label": dataPointLabel,
-	"data-point-measurement": dataPointMeasurement,
-	"data-point-unit": dataPointUnit,
-	forecast,
-	"forecast-day": forecastDay,
-	"forecast-day-name": forecastDayName,
-	"forecast-icon": forecastIcon,
-	"forecast-temps": forecastTemps,
-	low,
-	high,
-	"current-weather": currentWeather,
-	"chart-container": chartContainer,
-	separator,
-	"moon-phase-icon": moonPhaseIcon,
-	"moon-phase-container": moonPhaseContainer,
-	container,
-	"row-container": rowContainer,
-	"column-container": columnContainer,
-	"error-message": errorMessage
+declare const __default_export__: {
+	"weather-dashboard": typeof weatherDashboard;
+	header: typeof header;
+	"last-refresh": typeof lastRefresh;
+	location: typeof location;
+	"current-date": typeof currentDate;
+	"today-container": typeof todayContainer;
+	"current-temperature": typeof currentTemperature;
+	"current-icon": typeof currentIcon;
+	"current-temp": typeof currentTemp;
+	"temperature-unit": typeof temperatureUnit;
+	"feels-like": typeof feelsLike;
+	"data-points": typeof dataPoints;
+	"data-point": typeof dataPoint;
+	"data-point-img-container": typeof dataPointImgContainer;
+	"data-point-icon": typeof dataPointIcon;
+	"data-point-data": typeof dataPointData;
+	"data-point-label": typeof dataPointLabel;
+	"data-point-measurement": typeof dataPointMeasurement;
+	"data-point-unit": typeof dataPointUnit;
+	forecast: typeof forecast;
+	"forecast-day": typeof forecastDay;
+	"forecast-day-name": typeof forecastDayName;
+	"forecast-icon": typeof forecastIcon;
+	"forecast-temps": typeof forecastTemps;
+	low: typeof low;
+	high: typeof high;
+	"current-weather": typeof currentWeather;
+	"chart-container": typeof chartContainer;
+	separator: typeof separator;
+	"moon-phase-icon": typeof moonPhaseIcon;
+	"moon-phase-container": typeof moonPhaseContainer;
+	container: typeof container;
+	"row-container": typeof rowContainer;
+	"column-container": typeof columnContainer;
+	"error-message": typeof errorMessage;
 };
+export default __default_export__;

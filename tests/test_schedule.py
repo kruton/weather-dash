@@ -58,10 +58,13 @@ def test_screenshot_returns_schedule_after_rendering():
 
     with (
         patch.object(api_routes, "async_playwright", return_value=context),
-        patch.object(api_routes.asyncio, "sleep", new=AsyncMock()),
-        patch.object(api_routes, "image_enhance", return_value=b"png"),
+        patch.object(api_routes, "indexed_png", return_value=b"png"),
         patch.object(api_routes, "refresh_headers", side_effect=headers),
     ):
+        page.evaluate.return_value = {
+            "pngBase64": "cG5n",
+            "deviceColors": ["#000000", "#ffffff"],
+        }
         response = asyncio.run(api_routes.take_screenshot(800, 480, 37.7749, -122.4194))
     assert response.body == b"png"
     assert response.media_type == "image/png"

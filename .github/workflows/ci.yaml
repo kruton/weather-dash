@@ -67,10 +67,10 @@ jobs:
           path: ota-dist
 
       - uses: astral-sh/setup-uv@v10.2.0
-      - name: Test server OTA package and schedule
+      - name: Test server rendering, OTA package and schedule
         run: |
           mkdir -p frontend/dist
-          uv run --locked pytest tests/test_ota.py tests/test_schedule.py
+          uv run --locked pytest tests/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -103,6 +103,17 @@ jobs:
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
             REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Test e-ink processing in Chromium
+        env:
+          TEST_IMAGE: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          EINK_BROWSER_TESTS: '1'
+        run: |
+          test_container=$(docker create "$TEST_IMAGE")
+          trap 'docker rm "$test_container" >/dev/null' EXIT
+          docker cp "$test_container":/app/frontend/dist/. frontend/dist/
+          uv run --locked playwright install --with-deps --only-shell chromium
+          uv run --locked pytest tests/test_eink_browser.py
 
       - name: Test Docker compose
         env:

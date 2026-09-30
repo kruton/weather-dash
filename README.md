@@ -2,6 +2,43 @@
 
 A dashboard for the weather to be displayed on the ePaper display.
 
+## E-ink rendering
+
+`GET /api/screenshot?width=800&height=480&lat=37.7749&long=-122.4194&panel_profile=spectra6`
+renders the dashboard in Chrome and processes its screenshot with
+[epdoptimize](https://github.com/paperlesspaper/epdoptimize). `panel_profile`
+uses the library's palette identifiers:
+
+| Profile | Output |
+| --- | --- |
+| `spectra6` (default) | Six native colors for the 7.3-inch Spectra 6 Inky Frame |
+| `spectra6-boeber` | Böber's alternative Spectra 6 calibration, with brighter white, blue, and red |
+| `generic-2-color-eink` | Black and white, with distinct chart lines and outlined bars |
+| `none` | Original full-color screenshot |
+
+Panel screenshots use the library's readable recommendations, LAB matching,
+serpentine Floyd–Steinberg dithering, display-range fitting with white preservation,
+and text-edge preservation. Neutral pixels
+(RGB channel spread at most 16) use the library's monochrome processing to keep
+gray text edges and icons free of colored speckles. The Spectra 6
+palette is an initial calibration, not a measurement of every individual panel.
+Small text, borders, and chart strokes receive panel-specific styling; ordinary
+browser visits retain their existing appearance.
+
+The browser maps calibrated colors to native device colors. Python then repacks
+the result as an indexed PNG without changing its pixels. The Inky client uses
+`PNG_POSTERISE`, avoiding a second dither pass and Spectra's raw palette-index
+ordering differences. Future monochrome devices need their own hardware driver.
+
+The old `color`, `brightness`, `black`, and `quantize` screenshot options have
+been removed. Set `panel_profile=none` for unprocessed output. Location parameters
+and refresh/OTA response headers continue to work as before.
+
+Run `pnpm build` in `frontend/`, then `uv run playwright install --only-shell chromium`
+and `EINK_BROWSER_TESTS=1 uv run pytest tests/test_eink_browser.py` to exercise
+the production frontend and epdoptimize in Chrome. CI runs these browser tests
+against the frontend extracted from the built container.
+
 ## Trying it out
 
 A [`run.sh`](./run.sh) utility is provided for quickly building the image and starting a container.

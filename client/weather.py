@@ -14,6 +14,9 @@ We need somewhere to save the jpg for display.
 """
 
 from weather_config import NAME, LAT, LONG, URL
+import weather_config
+
+PANEL_PROFILE = getattr(weather_config, "PANEL_PROFILE", "spectra6")
 
 FALLBACK_UPDATE_INTERVAL = 240  # Minutes between updates if time sync fails
 UPDATE_INTERVAL = FALLBACK_UPDATE_INTERVAL  # Launcher reads this after draw()
@@ -117,7 +120,7 @@ def update():
     next_refresh = None
 
     location = url_escape(NAME)
-    url = f"{URL}/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}"
+    url = f"{URL}/api/screenshot?lat={LAT}&long={LONG}&name={location}&width={WIDTH}&height={HEIGHT}&panel_profile={url_escape(PANEL_PROFILE)}"
     print(f"weather update to {FILENAME} from {url}")
 
     ota_root = None
@@ -185,7 +188,7 @@ def draw():
 
     try:
         j.open_file(FILENAME)
-        j.decode()
+        j.decode(mode=pngdec.PNG_POSTERISE)
     except RuntimeError:
         err_string = "Unable to fetch"
 

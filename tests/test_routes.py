@@ -68,7 +68,7 @@ def test_api_screenshot_missing_params(client):
 
 
 @pytest.mark.parametrize(
-    "profile", [None, "spectra6", "spectra6-boeber", "generic-2-color-eink", "none"]
+    "profile", [None, "spectra6", "spectra6-boeber", "acep", "generic-2-color-eink", "generic-4-grayscale", "none"]
 )
 def test_api_screenshot_with_params(client, screenshot_browser, profile):
     """Test the /api/screenshot endpoint with valid parameters."""

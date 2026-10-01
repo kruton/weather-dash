@@ -13,7 +13,29 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 DISPLAY = "inky-frame-spectra-7"
-PROFILES = ("spectra6", "spectra6-boeber", "generic-2-color-eink", "none")
+DISPLAY_57 = "inky-frame-5.7"
+DISPLAY_E1001 = "reterminal-e1001"
+DISPLAYS = (DISPLAY, DISPLAY_57, DISPLAY_E1001)
+PROFILES = ("spectra6", "spectra6-boeber", "acep", "generic-2-color-eink",
+            "generic-4-grayscale", "none")
+
+
+def default_profile(display):
+    if display == DISPLAY_57:
+        return "acep"
+    if display == DISPLAY_E1001:
+        return "generic-2-color-eink"
+    return "spectra6"
+
+
+def compatible(display, profile):
+    if profile in ("generic-2-color-eink", "none"):
+        return True
+    if display == DISPLAY_57:
+        return profile == "acep"
+    if display == DISPLAY_E1001:
+        return profile == "generic-4-grayscale"
+    return profile in ("spectra6", "spectra6-boeber")
 
 
 def canonical(value):
@@ -24,11 +46,11 @@ def version(config):
     return hashlib.sha256(canonical(config).encode()).hexdigest()
 
 
-def default_config():
+def default_config(display=DISPLAY):
     return {
         "configured": False,
-        "display": DISPLAY,
-        "panel_profile": "spectra6",
+        "display": display,
+        "panel_profile": default_profile(display),
         "name": "",
         "lat": None,
         "long": None,
@@ -40,9 +62,10 @@ def default_config():
 class PanelSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     friendly_name: str = Field(default="", max_length=120)
-    display: Literal["inky-frame-spectra-7"] = DISPLAY
+    display: Literal["inky-frame-spectra-7", "inky-frame-5.7", "reterminal-e1001"] = DISPLAY
     panel_profile: Literal[
-        "spectra6", "spectra6-boeber", "generic-2-color-eink", "none"
+        "spectra6", "spectra6-boeber", "acep", "generic-2-color-eink",
+        "generic-4-grayscale", "none"
     ] = "spectra6"
     name: str = Field(default="", max_length=160)
     lat: float = Field(ge=-90, le=90)
@@ -52,6 +75,8 @@ class PanelSettings(BaseModel):
 
     @model_validator(mode="after")
     def validate_battery(self):
+        if not compatible(self.display, self.panel_profile):
+            raise ValueError("Palette does not match the display")
         if self.battery_type in ("li-poly", "li-ion") and self.battery_cells != 1:
             raise ValueError(
                 "The Inky battery connector supports single-cell lithium packs"
@@ -99,7 +124,10 @@ class Registry:
         reported_version,
         battery_voltage=None,
         power_source=None,
+        display=None,
     ):
+        if display is not None and display not in DISPLAYS:
+            raise ValueError("Unsupported display")
         now = int(time.time())
         with self.connect() as db:
             db.execute(
@@ -116,9 +144,18 @@ class Registry:
                     width,
                     height,
                     reported_version,
-                    canonical(default_config()),
+                    canonical(default_config(display or DISPLAY)),
                 ),
             )
+            if display is not None:
+                row = db.execute("SELECT config FROM panels WHERE id=?", (device_id,)).fetchone()
+                config = json.loads(row["config"])
+                if config["display"] != display:
+                    config["display"] = display
+                    if not compatible(display, config["panel_profile"]):
+                        config["panel_profile"] = default_profile(display)
+                    db.execute("UPDATE panels SET config=? WHERE id=?",
+                               (canonical(config), device_id))
             if battery_voltage is not None and power_source == "battery":
                 db.execute(
                     "UPDATE panels SET battery_voltage=?, battery_reported_at=? WHERE id=?",

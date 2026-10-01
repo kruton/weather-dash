@@ -8,7 +8,9 @@ Open `/admin` to manage panels. Each panel reports its hardware ID automatically
 with every weather request, appears in the fleet list, and displays setup
 instructions until its location is configured. The fleet page manages the panel
 name, location, hardware profile, rendering palette, battery chemistry, and cell
-count. This version supports the existing 7.3-inch Spectra 6 Inky Frame driver.
+count. The client supports 7.3-inch Spectra 6 and 5.7-inch Inky Frames.
+Set `HARDWARE_DISPLAY = "inky-frame-5.7"` in `weather_config.py` on a 5.7-inch
+frame before booting. Its device header reconciles the server's hardware setting.
 
 The client needs only `URL` in `weather_config.py`; Wi-Fi credentials remain in
 `secrets.py`. Server settings are cached in `/panel_config.json` outside OTA
@@ -75,6 +77,7 @@ uses the library's palette identifiers:
 | --- | --- |
 | `spectra6` (default) | Six native colors for the 7.3-inch Spectra 6 Inky Frame |
 | `spectra6-boeber` | Böber's alternative Spectra 6 calibration, with brighter white, blue, and red |
+| `acep` | Seven native colors for the 5.7-inch Inky Frame |
 | `generic-2-color-eink` | Black and white, with distinct chart lines and outlined bars |
 | `none` | Original full-color screenshot |
 

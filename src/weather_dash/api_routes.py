@@ -83,11 +83,16 @@ async def take_screenshot(
     long: float | None = None,
     name: str | None = None,
     panel_profile: Literal[
-        "spectra6", "spectra6-boeber", "generic-2-color-eink", "none"
+        "spectra6", "spectra6-boeber", "acep", "generic-2-color-eink",
+        "generic-4-grayscale", "none"
     ] = "spectra6",
     ota_profile: str | None = None,
     request: Request = None,
     device_id: Annotated[str | None, Header(alias="X-Weather-Device-ID")] = None,
+    display: Annotated[
+        Literal["inky-frame-spectra-7", "inky-frame-5.7", "reterminal-e1001"] | None,
+        Header(alias="X-Weather-Display"),
+    ] = None,
     config_version: Annotated[
         str | None, Header(alias="X-Weather-Config-Version")
     ] = None,
@@ -117,6 +122,7 @@ async def take_screenshot(
             config_version,
             battery_voltage,
             power_source,
+            display,
         )
         if config_version != panel["config_version"]:
             extra_headers["X-Weather-Config"] = canonical(

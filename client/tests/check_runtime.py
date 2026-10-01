@@ -78,6 +78,7 @@ assert panel_config.apply([header])
 assert panel_config.current["config"]["name"] == "Paris 🌦"
 assert panel_config.load()["config"]["name"] == "Paris 🌦"
 assert panel_config.request_headers()[b"X-Weather-Device-ID"] == b"6162636465666768"
+assert panel_config.request_headers()[b"X-Weather-Display"] == b"inky-frame-spectra-7"
 assert panel_config.request_headers()[b"X-Weather-Config-Version"] == b"a" * 64
 assert not panel_config.apply([header])
 assert not panel_config.apply([b"X-Weather-Config: invalid"])

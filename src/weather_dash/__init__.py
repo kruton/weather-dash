@@ -12,6 +12,7 @@ from .fleet import router as fleet_router
 from .ota import get_package
 from .ota import router as ota_router
 from .prepared import ImageCache
+from .request_logging import RequestLoggingMiddleware
 
 
 class SPAStaticFiles(StaticFiles):
@@ -37,6 +38,7 @@ def get_app() -> FastAPI:
             await cache.stop()
 
     app = FastAPI(openapi_url=None, lifespan=lifespan)
+    app.add_middleware(RequestLoggingMiddleware)
 
     services = None
 

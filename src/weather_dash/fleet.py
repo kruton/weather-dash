@@ -8,8 +8,10 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 DISPLAY = "inky-frame-spectra-7"
@@ -199,6 +201,11 @@ class Registry:
             )
         return self.get(device_id) if result.rowcount else None
 
+    def delete(self, device_id):
+        with self.connect() as db:
+            result = db.execute("DELETE FROM panels WHERE id=?", (device_id,))
+        return bool(result.rowcount)
+
 
 router = APIRouter(prefix="/admin/api")
 
@@ -213,7 +220,12 @@ def describe(panel, cache):
         empty, full = (1.0, 1.6) if battery_type == "alkaline" else (3.0, 4.2)
         cell_voltage = voltage / config.get("battery_cells", 3)
         percent = round(max(0, min(100, 100 * (cell_voltage - empty) / (full - empty))))
-    return panel | {"image": cache.status(panel), "battery_percent": percent}
+    image = cache.status(panel)
+    image["url"] = (
+        f"/admin/api/panels/{quote(panel['id'], safe='')}/image"
+        if image.get("rendered_at") is not None else None
+    )
+    return panel | {"image": image, "battery_percent": percent}
 
 
 @router.get("/panels")
@@ -231,13 +243,43 @@ async def get_panel(device_id: str, request: Request):
     return describe(panel, cache)
 
 
-@router.put("/panels/{device_id}/config")
-async def configure_panel(device_id: str, settings: PanelSettings, request: Request):
+@router.get("/panels/{device_id}/image")
+async def get_panel_image(device_id: str, request: Request):
+    from .prepared import target_key
+
+    registry, cache = request.app.state.fleet()
+    panel = registry.get(device_id)
+    if panel is None:
+        raise HTTPException(404, "Unknown panel")
+    metadata = cache.metadata(target_key(panel)) if panel["config"]["configured"] else None
+    if metadata is None:
+        raise HTTPException(404, "No cached image for this panel")
+    return FileResponse(
+        cache.directory / metadata["file"], media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def check_management_origin(request: Request):
     # Browser writes must originate on this host; authentication lives at Envoy.
     origin = request.headers.get("origin")
     public_url = os.environ.get("WEATHER_PUBLIC_URL", str(request.base_url))
     if origin and origin.rstrip("/") != public_url.rstrip("/"):
         raise HTTPException(403, "Cross-origin management request")
+
+
+@router.delete("/panels/{device_id}")
+async def delete_panel(device_id: str, request: Request):
+    check_management_origin(request)
+    registry, _ = request.app.state.fleet()
+    if not registry.delete(device_id):
+        raise HTTPException(404, "Unknown panel")
+    return {"deleted": device_id}
+
+
+@router.put("/panels/{device_id}/config")
+async def configure_panel(device_id: str, settings: PanelSettings, request: Request):
+    check_management_origin(request)
     registry, cache = request.app.state.fleet()
     panel = registry.configure(device_id, settings)
     if panel is None:

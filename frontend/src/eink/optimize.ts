@@ -3,6 +3,8 @@ import {
     replaceColors,
     spectra6Palette,
     spectra6BoeberPalette,
+    acepPalette,
+    genericFourGrayscalePalette,
     genericTwoColorEinkPalette,
     suggestCanvasProcessingOptions,
 } from 'epdoptimize';
@@ -13,7 +15,9 @@ import { isPanelProfile } from './profiles';
 const palettes: Record<PanelProfile, typeof spectra6Palette> = {
     spectra6: spectra6Palette,
     'spectra6-boeber': spectra6BoeberPalette,
+    acep: acepPalette,
     'generic-2-color-eink': genericTwoColorEinkPalette,
+    'generic-4-grayscale': genericFourGrayscalePalette,
 };
 
 export interface OptimizeRequest {
@@ -71,7 +75,7 @@ export async function optimizeScreenshot({ pngBase64, panelProfile }: OptimizeRe
     bitmap.close();
 
     const device = await processPalette(source, palette);
-    if (panelProfile !== 'generic-2-color-eink') {
+    if (panelProfile !== 'generic-2-color-eink' && panelProfile !== 'generic-4-grayscale') {
         // Calibrated color inks can be nearer to mid-gray than black/white.
         // Keep neutral UI/text free of colored speckles, using the library's
         // monochrome processing rather than a separate dithering algorithm.
@@ -94,6 +98,8 @@ export async function optimizeScreenshot({ pngBase64, panelProfile }: OptimizeRe
     }
     return {
         pngBase64: device.toDataURL('image/png').split(',')[1],
-        deviceColors: palette.map(entry => entry.deviceColor),
+        deviceColors: palette.map(entry => entry.deviceColor.length === 4
+            ? '#' + [...entry.deviceColor.slice(1)].map(channel => channel + channel).join('')
+            : entry.deviceColor),
     };
 }

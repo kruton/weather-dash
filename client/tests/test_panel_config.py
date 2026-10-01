@@ -95,6 +95,23 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(self.config.display_driver(), 7)
         self.assertNotIn(b"X-Weather-Config-Version", self.config.request_headers())
 
+    def test_57_hardware_selection_and_mismatched_server_config(self):
+        spec = importlib.util.spec_from_file_location(
+            "panel_config_57", Path(__file__).resolve().parents[1] / "panel_config.py"
+        )
+        config = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, machine=self.machine,
+                        weather_config=SimpleNamespace(HARDWARE_DISPLAY="inky-frame-5.7"),
+                        picographics=SimpleNamespace(DISPLAY_INKY_FRAME=57)):
+            spec.loader.exec_module(config)
+            config.PATH = self.temp.name + "/panel_config-57.json"
+            self.assertEqual(config.display_driver(), 57)
+            self.assertEqual(config.request_headers()[b"X-Weather-Display"], b"inky-frame-5.7")
+            self.assertFalse(config.apply(self.headers(self.snapshot())))
+            self.assertTrue(config.apply(self.headers(self.snapshot(
+                display="inky-frame-5.7", panel_profile="acep"))))
+            self.assertEqual(config.active_display, "inky-frame-5.7")
+
     def test_battery_sampling_and_telemetry(self):
         self.machine.Pin.return_value.value.return_value = 0
         self.machine.ADC.return_value.read_u16.return_value = 25818

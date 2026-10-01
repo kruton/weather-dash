@@ -66,7 +66,7 @@ def process(page, image, profile):
 
 
 @pytest.mark.parametrize(
-    "profile", ["spectra6", "spectra6-boeber", "generic-2-color-eink"]
+    "profile", ["spectra6", "spectra6-boeber", "acep", "generic-2-color-eink", "generic-4-grayscale"]
 )
 @pytest.mark.parametrize("color", ["black", "white"])
 def test_solid_ink_stays_solid(browser_page, profile, color):
@@ -76,7 +76,7 @@ def test_solid_ink_stays_solid(browser_page, profile, color):
 
 
 @pytest.mark.parametrize(
-    "profile", ["spectra6", "spectra6-boeber", "generic-2-color-eink"]
+    "profile", ["spectra6", "spectra6-boeber", "acep", "generic-2-color-eink", "generic-4-grayscale"]
 )
 def test_transparency_is_composited_on_white(browser_page, profile):
     source = Image.new("RGBA", (7, 3), (255, 0, 0, 0))
@@ -84,7 +84,7 @@ def test_transparency_is_composited_on_white(browser_page, profile):
     assert result.convert("RGB").getcolors() == [(21, (255, 255, 255))]
 
 
-@pytest.mark.parametrize("profile", ["spectra6", "spectra6-boeber"])
+@pytest.mark.parametrize("profile", ["spectra6", "spectra6-boeber", "acep"])
 def test_neutral_text_has_no_colored_speckles(browser_page, profile):
     encoded = browser_page.evaluate("""() => {
         const canvas = document.createElement('canvas');
@@ -105,7 +105,7 @@ def test_neutral_text_has_no_colored_speckles(browser_page, profile):
 
 
 @pytest.mark.parametrize(
-    "profile", ["spectra6", "spectra6-boeber", "generic-2-color-eink"]
+    "profile", ["spectra6", "spectra6-boeber", "acep", "generic-2-color-eink", "generic-4-grayscale"]
 )
 def test_gradients_use_only_native_colors_and_are_deterministic(browser_page, profile):
     source = Image.new("RGB", (63, 31))
@@ -118,4 +118,4 @@ def test_gradients_use_only_native_colors_and_are_deterministic(browser_page, pr
     colors = set(result.convert("RGB").get_flattened_data())
     palette = {tuple(bytes.fromhex(color[1:])) for color in metadata["deviceColors"]}
     assert colors <= palette
-    assert len(palette) == (2 if profile == "generic-2-color-eink" else 6)
+    assert len(palette) == (2 if profile == "generic-2-color-eink" else 4 if profile == "generic-4-grayscale" else 7 if profile == "acep" else 6)

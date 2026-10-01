@@ -8,10 +8,17 @@ import machine
 
 PATH = "/panel_config.json"
 DISPLAY = "inky-frame-spectra-7"
-PROFILES = ("spectra6", "spectra6-boeber", "generic-2-color-eink", "none")
+DISPLAYS = ("inky-frame-spectra-7", "inky-frame-5.7")
+PROFILES = ("spectra6", "spectra6-boeber", "acep", "generic-2-color-eink", "none")
 MAX_HEADER = 4096
 current = None
-active_display = DISPLAY
+try:
+    from weather_config import HARDWARE_DISPLAY
+except ImportError:
+    HARDWARE_DISPLAY = DISPLAY
+if HARDWARE_DISPLAY not in DISPLAYS:
+    raise ValueError("Unsupported hardware display")
+active_display = HARDWARE_DISPLAY
 
 
 def normalize(value):
@@ -62,8 +69,11 @@ def valid(value):
             "battery_cells",
         }
         or type(config["configured"]) is not bool
-        or config["display"] != DISPLAY
+        or config["display"] not in DISPLAYS
         or config["panel_profile"] not in PROFILES
+        or (config["panel_profile"] == "acep" and config["display"] != "inky-frame-5.7")
+        or (config["panel_profile"] in ("spectra6", "spectra6-boeber")
+            and config["display"] != DISPLAY)
         or not isinstance(config["name"], str)
         or len(config["name"]) > 160
         or config["battery_type"] not in ("unknown", "alkaline", "li-poly", "li-ion")
@@ -93,18 +103,20 @@ def load():
         with open(PATH) as f:
             raw = f.read(MAX_HEADER + 1)
         value = normalize(json.loads(raw)) if len(raw) <= MAX_HEADER else None
-        if valid(value):
+        if valid(value) and value["config"]["display"] == HARDWARE_DISPLAY:
             current = value
     except (OSError, ValueError, TypeError):
         pass
-    active_display = current["config"]["display"] if current else DISPLAY
+    active_display = HARDWARE_DISPLAY
     return current
 
 
 def display_driver():
     load()
+    if HARDWARE_DISPLAY == "inky-frame-5.7":
+        from picographics import DISPLAY_INKY_FRAME
+        return DISPLAY_INKY_FRAME
     from picographics import DISPLAY_INKY_FRAME_SPECTRA_7
-
     return DISPLAY_INKY_FRAME_SPECTRA_7
 
 
@@ -121,7 +133,8 @@ def apply(headers):
         if len(values) != 1 or len(values[0]) > MAX_HEADER:
             return False
         value = normalize(json.loads(values[0].decode()))
-        if not valid(value) or value == current:
+        if (not valid(value) or value["config"]["display"] != HARDWARE_DISPLAY
+                or value == current):
             return False
         with open(PATH + ".tmp", "w") as f:
             json.dump(value, f)
@@ -140,6 +153,7 @@ def request_headers(battery=None):
     headers = {
         b"accept": b"image/png",
         b"X-Weather-Device-ID": binascii.hexlify(machine.unique_id()),
+        b"X-Weather-Display": HARDWARE_DISPLAY.encode(),
     }
     if current:
         headers[b"X-Weather-Config-Version"] = current["version"].encode()

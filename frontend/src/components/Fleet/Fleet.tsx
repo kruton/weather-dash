@@ -113,8 +113,14 @@ function Editor({ panel, onSave, onCancel }: { panel: Panel; onSave: (panel: Pan
       <label>Location name<input maxLength={160} value={config.name} onChange={e => setConfig({ ...config, name: e.target.value })} /></label>
       <label>Latitude<input type="number" step="any" min={-90} max={90} required value={lat} onChange={e => setLat(e.target.value)} /></label>
       <label>Longitude<input type="number" step="any" min={-180} max={180} required value={long} onChange={e => setLong(e.target.value)} /></label>
-      <label>Hardware<select value={config.display} onChange={e => setConfig({ ...config, display: e.target.value })}><option value="inky-frame-spectra-7">Inky Frame 7.3-inch Spectra 6</option></select></label>
-      <label>Palette<select value={config.panel_profile} onChange={e => setConfig({ ...config, panel_profile: e.target.value })}><option value="spectra6">Spectra 6</option><option value="spectra6-boeber">Spectra 6 Böber calibration</option><option value="generic-2-color-eink">Black and white</option><option value="none">Full color</option></select></label>
+      <label>Hardware<select value={config.display} onChange={e => {
+        const display = e.target.value;
+        setConfig({ ...config, display, panel_profile: display === 'inky-frame-5.7' ? 'acep' : display === 'reterminal-e1001' ? 'generic-2-color-eink' : 'spectra6' });
+      }}><option value="inky-frame-spectra-7">Inky Frame 7.3-inch Spectra 6</option><option value="inky-frame-5.7">Inky Frame 5.7-inch</option><option value="reterminal-e1001">reTerminal E1001</option></select></label>
+      <label>Palette<select value={config.panel_profile} onChange={e => setConfig({ ...config, panel_profile: e.target.value })}>
+        {config.display === 'inky-frame-5.7' ? <option value="acep">Seven color (ACeP)</option> : config.display === 'inky-frame-spectra-7' ? <><option value="spectra6">Spectra 6</option><option value="spectra6-boeber">Spectra 6 Böber calibration</option></> : null}
+        <option value="generic-2-color-eink">Black and white</option>{config.display === 'reterminal-e1001' && <option value="generic-4-grayscale">Four-level grayscale</option>}<option value="none">Full color</option>
+      </select></label>
       <label>Battery chemistry<select value={config.battery_type} onChange={e => {
         const battery_type = e.target.value as BatteryType;
         setConfig({ ...config, battery_type, battery_cells: battery_type === 'li-poly' || battery_type === 'li-ion' ? 1 : 3 });

@@ -4,8 +4,10 @@ This directory contains a client meant to run on the Pimoroni Inky-Frame
 inkylauncher example at
 https://github.com/pimoroni/inky-frame/tree/main/examples/inkylauncher
 
-Set only `URL` in `weather_config.py`, and keep Wi-Fi credentials in
-`secrets.py`. Panels identify themselves with `machine.unique_id()` and
+Set `URL` in `weather_config.py`. For a 5.7-inch frame, also set
+`HARDWARE_DISPLAY = "inky-frame-5.7"` in that file before booting; the default
+is the 7.3-inch Spectra 6 driver. Keep Wi-Fi credentials in `secrets.py`.
+Panels identify themselves with `machine.unique_id()` and
 register with the server on their first weather request. Open `/admin` on the
 dashboard to set their location, palette, hardware profile, and battery
 settings. Until then, the panel displays setup instructions and checks in every
@@ -19,9 +21,10 @@ interrupted writes preserve the last good configuration. Existing
 `weather_config.py` files are accepted, but old `NAME`, `LAT`, `LONG`,
 `PANEL_PROFILE`, and `DISPLAY` values are ignored.
 
-The launcher loads the server-owned hardware profile before creating graphics.
-The boot default is the current 7.3-inch Spectra 6 Inky Frame; additional
-hardware drivers are deferred. The server prepares weather images before each
+The launcher loads the local physical display model before creating graphics.
+It uses Pimoroni's 600×448 5.7-inch driver or the 800×480 Spectra 6 driver.
+The reported model initializes the server's hardware setting; a mismatched
+server setting is ignored by the frame. The server prepares weather images before each
 scheduled check-in, so normal downloads do not wait for browser rendering or
 weather APIs.
 
@@ -139,7 +142,8 @@ deliberately to roll back; there is no monotonic anti-rollback counter.
 3. Flash the `with-filesystem.uf2` artifact once to install the initial slots
    and fixed bootstrap. Back up local settings first; filesystem UF2 flashing
    replaces the filesystem. Set only `URL` in `weather_config.py`, restore
-   `secrets.py`, select Weather with button B, and configure the panel in
+   `secrets.py`, set `HARDWARE_DISPLAY` for a 5.7-inch frame, select Weather
+   with button B, and configure the panel in
    `/admin`. Subsequent deployments update scripts over the network while
    preserving these settings.
 4. Test both battery and USB operation on a physical frame before deploying to

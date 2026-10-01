@@ -1,3 +1,6 @@
+# Keep this one-day hold aligned with minimumReleaseAge in renovate.json.
+minimumReleaseAge: 1440
+
 allowBuilds:
   '@swc/core': true
   esbuild: true

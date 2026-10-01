@@ -3,7 +3,28 @@ import io
 import pytest
 from PIL import Image
 
-from weather_dash.images import indexed_png
+from weather_dash.images import indexed_png, inky_57_frame
+
+
+def test_inky_57_frame_uses_three_msb_first_bitplanes():
+    image = Image.new("RGB", (600, 448), "white")
+    for x, y, color in ((0, 0, "black"), (7, 0, (0, 255, 0)),
+                        (8, 0, "red"), (0, 1, (255, 128, 0))):
+        image.putpixel((x, y), Image.new("RGB", (1, 1), color).getpixel((0, 0)))
+    frame = inky_57_frame(png(image))
+    plane = 600 * 448 // 8
+    assert len(frame) == plane * 3
+    assert frame[0] == 0 and frame[1] == 0x80
+    assert frame[plane] == 0x01
+    assert frame[2 * plane] == 0x7E
+    assert frame[75] == 0x80
+    assert frame[plane + 75] == 0x80
+    assert frame[2 * plane + 75] == 0x7F
+
+
+def test_inky_57_frame_rejects_unsupported_color():
+    with pytest.raises(ValueError, match="Unexpected 5.7-inch device color"):
+        inky_57_frame(png(Image.new("RGB", (600, 448), (12, 34, 56))))
 
 
 def png(image):

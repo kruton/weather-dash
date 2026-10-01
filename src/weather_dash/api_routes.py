@@ -10,7 +10,7 @@ from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
 
 from .fleet import canonical
-from .images import indexed_png
+from .images import indexed_png, inky_57_frame
 from .ota import root_header
 from .prepared import setup_image
 from .schedule import refresh_headers
@@ -86,6 +86,7 @@ async def take_screenshot(
         "spectra6", "spectra6-boeber", "acep", "generic-2-color-eink",
         "generic-4-grayscale", "none"
     ] = "spectra6",
+    image_format: Literal["png", "inky-57-raw"] = "png",
     ota_profile: str | None = None,
     request: Request = None,
     device_id: Annotated[str | None, Header(alias="X-Weather-Device-ID")] = None,
@@ -159,7 +160,17 @@ async def take_screenshot(
                 422, "Latitude and longitude are required without a device ID"
             )
         image = await render_image(width, height, lat, long, name, panel_profile)
+    if image_format == "inky-57-raw":
+        if (width, height) != (600, 448) or (
+            device_id is not None and panel["config"]["display"] != "inky-frame-5.7"
+        ):
+            raise HTTPException(422, "Raw image requires a 5.7-inch Inky Frame")
+        try:
+            image = inky_57_frame(image)
+        except ValueError as error:
+            raise HTTPException(500, str(error)) from error
     headers = {**refresh_headers(), **root_header(ota_profile), **extra_headers}
     if extra_headers.get("X-Weather-Setup"):
         headers["X-Weather-Next-Refresh"] = str(int(headers["X-Weather-Time"]) + 300)
-    return Response(image, media_type="image/png", headers=headers)
+    return Response(image, media_type=("application/octet-stream"
+                    if image_format == "inky-57-raw" else "image/png"), headers=headers)

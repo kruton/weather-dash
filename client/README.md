@@ -34,9 +34,12 @@ identifies USB power separately, and estimates percentage using the chemistry
 and cell count selected in the admin page. Unknown chemistry reports volts
 only.
 
-The server dithers images and exports indexed PNGs with native RGB colors.  The
-client decodes with `PNG_POSTERISE` to preserve those pixels; do not use
-`PNG_COPY`, because Spectra hardware indices differ from the drawing palette.
+The server dithers images to each panel's native colors. Spectra 6 frames
+download indexed PNGs and decode with `PNG_POSTERISE`; do not use `PNG_COPY`,
+because Spectra hardware indices differ from the drawing palette. The 5.7-inch
+frame downloads a 100,800-byte, three-plane framebuffer instead. The client
+copies it to PicoGraphics in small chunks so PNG decoding does not exhaust the
+Pico W's RAM.
 
 Weather refreshes at 7 am, 11 am, 3 pm, and 7 pm in America/Los_Angeles, then
 sleeps overnight until 7 am. The server owns this schedule; edit

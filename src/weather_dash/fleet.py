@@ -29,8 +29,10 @@ def default_profile(display):
 
 
 def compatible(display, profile):
-    if profile in ("generic-2-color-eink", "none"):
+    if profile == "generic-2-color-eink":
         return True
+    if profile == "none":
+        return display != DISPLAY_57
     if display == DISPLAY_57:
         return profile == "acep"
     if display == DISPLAY_E1001:
@@ -150,7 +152,8 @@ class Registry:
             if display is not None:
                 row = db.execute("SELECT config FROM panels WHERE id=?", (device_id,)).fetchone()
                 config = json.loads(row["config"])
-                if config["display"] != display:
+                if (config["display"] != display or
+                        not compatible(display, config["panel_profile"])):
                     config["display"] = display
                     if not compatible(display, config["panel_profile"]):
                         config["panel_profile"] = default_profile(display)

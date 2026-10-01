@@ -107,6 +107,7 @@ class ConfigTests(unittest.TestCase):
             config.PATH = self.temp.name + "/panel_config-57.json"
             self.assertEqual(config.display_driver(), 57)
             self.assertEqual(config.request_headers()[b"X-Weather-Display"], b"inky-frame-5.7")
+            self.assertEqual(config.request_headers()[b"accept"], b"application/octet-stream")
             self.assertFalse(config.apply(self.headers(self.snapshot())))
             self.assertTrue(config.apply(self.headers(self.snapshot(
                 display="inky-frame-5.7", panel_profile="acep"))))

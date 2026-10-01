@@ -1,11 +1,12 @@
 import calendar
-from datetime import datetime
 import importlib.util
-from pathlib import Path
 import sys
+import tempfile
 import time
-from types import SimpleNamespace
 import unittest
+from datetime import datetime
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 
@@ -20,19 +21,22 @@ class WeatherTests(unittest.TestCase):
             mktime=calendar.timegm,
             time=MagicMock(return_value=0),
         )
-        modules = dict(machine=self.machine, mrequests=self.requests,
-                       pngdec=self.pngdec, sdcard=MagicMock(), uos=MagicMock(),
-                       time=self.clock,
-                       panel_config=SimpleNamespace(current=None, active_display="inky-frame-spectra-7",
+        modules = {"machine": self.machine, "mrequests": self.requests,
+                       "pngdec": self.pngdec, "sdcard": MagicMock(), "uos": MagicMock(),
+                       "time": self.clock,
+                       "panel_config": SimpleNamespace(current=None, active_display="inky-frame-spectra-7",
                            apply=MagicMock(), request_headers=lambda battery: {b"accept": b"image/png", b"X-Weather-Device-ID": b"6162636465666768"}),
-                       weather_config=SimpleNamespace(NAME="San Francisco, California",
+                       "weather_config": SimpleNamespace(NAME="San Francisco, California",
                            LAT="37.7749", LONG="-122.4194",
-                           URL="https://weather-dash.their.net"))
+                           URL="https://weather-dash.their.net")}
         spec = importlib.util.spec_from_file_location(
             "weather", Path(__file__).resolve().parents[1] / "weather.py")
         self.weather = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, modules):
             spec.loader.exec_module(self.weather)
+        png_patch = patch.dict(sys.modules, pngdec=self.pngdec)
+        png_patch.start()
+        self.addCleanup(png_patch.stop)
         self.weather.graphics = MagicMock()
         self.weather.graphics.measure_text.return_value = 20
         self.weather.WIDTH = 800
@@ -52,6 +56,37 @@ class WeatherTests(unittest.TestCase):
     def test_draw_preserves_server_dithering(self):
         self.weather.draw()
         self.pngdec.PNG().decode.assert_called_once_with(mode=self.pngdec.PNG_POSTERISE)
+
+    def test_57_raw_frame_draw_uses_small_reads(self):
+        class Frame(bytearray):
+            def set_pen(self, pen): pass
+            def clear(self): pass
+            def set_blocking(self, enabled): pass
+            def update(self): pass
+
+        frame = Frame(self.weather.RAW_57_BYTES)
+        data = bytes(range(256)) * (len(frame) // 256) + bytes(range(len(frame) % 256))
+        with tempfile.TemporaryDirectory() as directory:
+            filename = str(Path(directory) / "weather.raw")
+            Path(filename).write_bytes(data)
+            self.weather.RAW_57 = True
+            self.weather.FILENAME = filename
+            self.weather.graphics = frame
+            self.weather.draw()
+        self.assertEqual(bytes(frame), data)
+        self.pngdec.PNG.assert_not_called()
+
+    def test_57_request_and_size_check(self):
+        self.weather.RAW_57 = True
+        self.weather.FILENAME = "/sd/weather.raw"
+        self.weather.WIDTH, self.weather.HEIGHT = 600, 448
+        response = self.requests.get.return_value
+        response.status_code = 200
+        response.headers = []
+        self.weather.uos.stat.return_value = (0, 0, 0, 0, 0, 0, self.weather.RAW_57_BYTES)
+        self.weather.update()
+        self.assertIn("image_format=inky-57-raw", self.requests.get.call_args.args[0])
+        self.weather.uos.rename.assert_called_once()
 
     def test_next_refresh(self):
         cases = (

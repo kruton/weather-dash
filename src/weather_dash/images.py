@@ -6,6 +6,39 @@ from struct import iter_unpack
 
 from PIL import Image
 
+INKY_57_SIZE = (600, 448)
+INKY_57_COLORS = {
+    (0, 0, 0): 0, (255, 255, 255): 1, (0, 255, 0): 2,
+    (0, 0, 255): 3, (255, 0, 0): 4, (255, 255, 0): 5,
+    (255, 128, 0): 6,
+}
+
+
+def inky_57_frame(png_data: bytes) -> bytes:
+    """Encode the 5.7-inch PicoGraphics framebuffer: three 1-bit planes."""
+    with Image.open(io.BytesIO(png_data)) as source:
+        if source.size != INKY_57_SIZE:
+            raise ValueError("Image dimensions do not match the 5.7-inch display")
+        if source.convert("RGBA").getchannel("A").getextrema() != (255, 255):
+            raise ValueError("Image must be opaque")
+        pixels = source.convert("RGB").tobytes()
+    plane_size = INKY_57_SIZE[0] * INKY_57_SIZE[1] // 8
+    output = bytearray(plane_size * 3)
+    for index, color in enumerate(iter_unpack("BBB", pixels)):
+        try:
+            pen = INKY_57_COLORS[color]
+        except KeyError as error:
+            raise ValueError(f"Unexpected 5.7-inch device color: {color}") from error
+        byte = index >> 3
+        mask = 0x80 >> (index & 7)
+        if pen & 4:
+            output[byte] |= mask
+        if pen & 2:
+            output[plane_size + byte] |= mask
+        if pen & 1:
+            output[2 * plane_size + byte] |= mask
+    return bytes(output)
+
 
 def indexed_png(
     png_data: bytes, device_colors: list[str], size: tuple[int, int]

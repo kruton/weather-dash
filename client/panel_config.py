@@ -72,6 +72,7 @@ def valid(value):
         or config["display"] not in DISPLAYS
         or config["panel_profile"] not in PROFILES
         or (config["panel_profile"] == "acep" and config["display"] != "inky-frame-5.7")
+        or (config["panel_profile"] == "none" and config["display"] == "inky-frame-5.7")
         or (config["panel_profile"] in ("spectra6", "spectra6-boeber")
             and config["display"] != DISPLAY)
         or not isinstance(config["name"], str)
@@ -151,7 +152,8 @@ def apply(headers):
 
 def request_headers(battery=None):
     headers = {
-        b"accept": b"image/png",
+        b"accept": (b"application/octet-stream" if HARDWARE_DISPLAY == "inky-frame-5.7"
+                    else b"image/png"),
         b"X-Weather-Device-ID": binascii.hexlify(machine.unique_id()),
         b"X-Weather-Display": HARDWARE_DISPLAY.encode(),
     }

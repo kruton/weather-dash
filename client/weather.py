@@ -3,7 +3,6 @@ import time
 
 import machine
 import mrequests as requests
-import pngdec
 import sdcard
 import uos
 
@@ -11,7 +10,7 @@ import uos
 Weather
 
 You *must* insert an SD card into Inky Frame!
-We need somewhere to save the jpg for display.
+We need somewhere to save the downloaded image for display.
 """
 
 import panel_config
@@ -34,7 +33,9 @@ HEIGHT = None
 
 gc.collect()  # We're really gonna need that RAM!
 
-FILENAME = "/sd/weather.png"
+RAW_57 = panel_config.active_display == "inky-frame-5.7"
+FILENAME = "/sd/weather.raw" if RAW_57 else "/sd/weather.png"
+RAW_57_BYTES = 600 * 448 * 3 // 8
 
 err_string = None
 sd_spi = machine.SPI(
@@ -117,6 +118,8 @@ def update():
     next_refresh = None
 
     url = f"{URL.rstrip('/')}/api/screenshot?width={WIDTH}&height={HEIGHT}"
+    if RAW_57:
+        url += "&image_format=inky-57-raw"
     print(f"weather update to {FILENAME} from {url}")
 
     ota_root = None
@@ -146,6 +149,8 @@ def update():
             if (panel_config.current is None or
                     panel_config.current["config"]["display"] == panel_config.active_display):
                 r.save(FILENAME + ".tmp", buf=buf)
+                if RAW_57 and uos.stat(FILENAME + ".tmp")[6] != RAW_57_BYTES:
+                    raise OSError("Incomplete 5.7-inch framebuffer")
                 uos.rename(FILENAME + ".tmp", FILENAME)
             next_refresh = target
             print(f"Image saved to '{FILENAME}'.")
@@ -182,15 +187,27 @@ def draw():
     print(f"Calling draw() for weather {FILENAME}")
     gc.collect()  # For good measure...
 
-    j = pngdec.PNG(graphics)
-
     graphics.set_pen(1)
     graphics.clear()
 
     try:
-        j.open_file(FILENAME)
-        j.decode(mode=pngdec.PNG_POSTERISE)
-    except RuntimeError:
+        if RAW_57:
+            framebuffer = memoryview(graphics)
+            if len(framebuffer) != RAW_57_BYTES:
+                raise RuntimeError("Unexpected 5.7-inch framebuffer size")
+            with open(FILENAME, "rb") as source:
+                for offset in range(0, RAW_57_BYTES, 1024):
+                    chunk = framebuffer[offset:min(offset + 1024, RAW_57_BYTES)]
+                    if source.readinto(chunk) != len(chunk):
+                        raise RuntimeError("Incomplete 5.7-inch image")
+                if source.read(1):
+                    raise RuntimeError("Oversized 5.7-inch image")
+        else:
+            import pngdec
+            decoder = pngdec.PNG(graphics)
+            decoder.open_file(FILENAME)
+            decoder.decode(mode=pngdec.PNG_POSTERISE)
+    except (OSError, RuntimeError):
         err_string = "Unable to fetch"
 
     if err_string:

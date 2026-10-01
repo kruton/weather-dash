@@ -119,7 +119,7 @@ function Editor({ panel, onSave, onCancel }: { panel: Panel; onSave: (panel: Pan
       }}><option value="inky-frame-spectra-7">Inky Frame 7.3-inch Spectra 6</option><option value="inky-frame-5.7">Inky Frame 5.7-inch</option><option value="reterminal-e1001">reTerminal E1001</option></select></label>
       <label>Palette<select value={config.panel_profile} onChange={e => setConfig({ ...config, panel_profile: e.target.value })}>
         {config.display === 'inky-frame-5.7' ? <option value="acep">Seven color (ACeP)</option> : config.display === 'inky-frame-spectra-7' ? <><option value="spectra6">Spectra 6</option><option value="spectra6-boeber">Spectra 6 Böber calibration</option></> : null}
-        <option value="generic-2-color-eink">Black and white</option>{config.display === 'reterminal-e1001' && <option value="generic-4-grayscale">Four-level grayscale</option>}<option value="none">Full color</option>
+        <option value="generic-2-color-eink">Black and white</option>{config.display === 'reterminal-e1001' && <option value="generic-4-grayscale">Four-level grayscale</option>}{config.display !== 'inky-frame-5.7' && <option value="none">Full color</option>}
       </select></label>
       <label>Battery chemistry<select value={config.battery_type} onChange={e => {
         const battery_type = e.target.value as BatteryType;

@@ -9,10 +9,10 @@ from pathlib import Path
 from threading import Thread
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageColor
 from playwright.sync_api import sync_playwright
 
-from weather_dash.images import indexed_png
+from weather_dash.images import indexed_png, inky_57_frame
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("EINK_BROWSER_TESTS") != "1",
@@ -119,3 +119,16 @@ def test_gradients_use_only_native_colors_and_are_deterministic(browser_page, pr
     palette = {tuple(bytes.fromhex(color[1:])) for color in metadata["deviceColors"]}
     assert colors <= palette
     assert len(palette) == (2 if profile == "generic-2-color-eink" else 4 if profile == "generic-4-grayscale" else 7 if profile == "acep" else 6)
+
+
+def test_57_optimized_image_encodes_for_framebuffer(browser_page):
+    source = Image.new("RGB", (600, 448), "white")
+    for index, color in enumerate(("black", "red", "orange", "green", "blue", "yellow")):
+        for x in range(index * 100, (index + 1) * 100):
+            for y in range(80, 180):
+                source.putpixel((x, y), ImageColor.getrgb(color))
+    optimized, _ = process(browser_page, source, "acep")
+    output = io.BytesIO()
+    optimized.save(output, format="PNG")
+    frame = inky_57_frame(output.getvalue())
+    assert len(frame) == 100800

@@ -8,13 +8,18 @@ Open `/admin` to manage panels. Each panel reports its hardware ID automatically
 with every weather request, appears in the fleet list, and displays setup
 instructions until its location is configured. The fleet page manages the panel
 name, location, hardware profile, rendering palette, battery chemistry, and cell
-count. The client supports 7.3-inch Spectra 6 and 5.7-inch Inky Frames.
+count. The Inky client supports 7.3-inch Spectra 6 and 5.7-inch Inky Frames.
 Set `HARDWARE_DISPLAY = "inky-frame-5.7"` in `weather_config.py` on a 5.7-inch
 frame before booting. Its device header reconciles the server's hardware setting.
+The server also supports the 800×480 monochrome reTerminal E1001, with black
+and white or four-level grayscale rendering. An E1001 client integration is not
+included; the server can render an image for it using, for example,
+`/api/screenshot?width=800&height=480&lat=37.7749&long=-122.4194&panel_profile=generic-2-color-eink`.
 
-The client needs only `URL` in `weather_config.py`; Wi-Fi credentials remain in
-`secrets.py`. Server settings are cached in `/panel_config.json` outside OTA
-slots. An unchanged configuration produces no flash write or config payload.
+The Inky client needs `URL` in `weather_config.py`, plus `HARDWARE_DISPLAY` on
+5.7-inch hardware; Wi-Fi credentials remain in `secrets.py`. Server settings
+are cached in `/panel_config.json` outside OTA slots. An unchanged
+configuration produces no flash write or config payload.
 Changes arrive at the next check-in and replace the complete cached managed
 section. Existing local location, palette, and display settings are ignored by
 the upgraded client. Older clients can continue using the query-based endpoint.
@@ -79,6 +84,7 @@ uses the library's palette identifiers:
 | `spectra6-boeber` | Böber's alternative Spectra 6 calibration, with brighter white, blue, and red |
 | `acep` | Seven native colors for the 5.7-inch Inky Frame |
 | `generic-2-color-eink` | Black and white, with distinct chart lines and outlined bars |
+| `generic-4-grayscale` | Four grayscale levels for the reTerminal E1001 |
 | `none` | Original full-color screenshot |
 
 Panel screenshots use the library's readable recommendations, LAB matching,
@@ -91,9 +97,12 @@ Small text, borders, and chart strokes receive panel-specific styling; ordinary
 browser visits retain their existing appearance.
 
 The browser maps calibrated colors to native device colors. Python then repacks
-the result as an indexed PNG without changing its pixels. The Inky client uses
-`PNG_POSTERISE`, avoiding a second dither pass and Spectra's raw palette-index
-ordering differences. Future monochrome devices need their own hardware driver.
+the result as an indexed PNG without changing its pixels. The Spectra 6 client
+uses `PNG_POSTERISE`, avoiding a second dither pass and Spectra's raw palette-index
+ordering differences. For a 5.7-inch Inky Frame, request
+`image_format=inky-57-raw` to receive a 100,800-byte, three-plane PicoGraphics
+framebuffer that fits the Pico W's memory limits. The E1001 is server-only and
+has no device client in this repository.
 
 The old `color`, `brightness`, `black`, and `quantize` screenshot options have
 been removed. Set `panel_profile=none` for unprocessed output. Location parameters

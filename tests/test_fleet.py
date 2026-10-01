@@ -90,11 +90,13 @@ def test_57_registration_reconciles_existing_panel(services):
     device_id = "cd" * 8
     registry.register(device_id, 800, 480, None)
     response = client.get(
-        "/api/screenshot?width=600&height=448",
+        "/api/screenshot?width=600&height=448&image_format=inky-57-raw",
         headers={"X-Weather-Device-ID": device_id,
                  "X-Weather-Display": "inky-frame-5.7"},
     )
     assert response.status_code == 200
+    assert response.headers["content-type"] == "application/octet-stream"
+    assert len(response.content) == 600 * 448 * 3 // 8
     assert registry.get(device_id)["config"]["display"] == "inky-frame-5.7"
     assert registry.get(device_id)["config"]["panel_profile"] == "acep"
     config = json.loads(response.headers["X-Weather-Config"])["config"]
@@ -127,6 +129,11 @@ def test_e1001_server_profile_and_grayscale_selection(services):
         "lat": 48.86, "long": 2.35,
     })
     assert response.status_code == 200
+    assert client.get(
+        "/api/screenshot?width=800&height=480",
+        headers={"X-Weather-Device-ID": device_id,
+                 "X-Weather-Display": "reterminal-e1001"},
+    ).status_code == 200
     assert cache.render.call_args.kwargs["panel_profile"] == "generic-4-grayscale"
     assert client.put(f"/admin/api/panels/{device_id}/config", json={
         "display": "reterminal-e1001", "panel_profile": "acep",

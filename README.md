@@ -9,6 +9,9 @@ with every weather request, appears in the fleet list, and displays setup
 instructions until its location is configured. The fleet page manages the panel
 name, location, hardware profile, rendering palette, battery chemistry, and cell
 count. The Inky client supports 7.3-inch Spectra 6 and 5.7-inch Inky Frames.
+Each panel shows whether an image is cached, when it was created, and a link to
+view it. Delete asks for confirmation before removing the panel and its settings.
+An active panel registers again at its next check-in and needs setup again.
 Set `HARDWARE_DISPLAY = "inky-frame-5.7"` in `weather_config.py` on a 5.7-inch
 frame before booting. Its device header reconciles the server's hardware setting.
 The server also supports the 800×480 monochrome reTerminal E1001, with black
@@ -46,7 +49,10 @@ the external dashboard origin behind a reverse proxy, including the setup link
 and same-origin checks on browser management writes.
 
 Management endpoints are `GET /admin/api/panels`,
-`GET /admin/api/panels/{id}`, and `PUT /admin/api/panels/{id}/config`.
+`GET /admin/api/panels/{id}`, `PUT /admin/api/panels/{id}/config`,
+`DELETE /admin/api/panels/{id}`, and `GET /admin/api/panels/{id}/image`.
+The image endpoint serves the existing cached PNG for the current settings and
+returns 404 when none exists; it does not trigger rendering.
 Authentication is enforced by ingress: the beta-cluster manifests protect the
 entire `/admin` prefix with Envoy Gateway OIDC and Authelia two-factor login,
 including the API and callback. Public weather and OTA routes remain accessible
@@ -70,6 +76,13 @@ and `weather_dash_image_cache_requests_total`. The cluster PrometheusRule alerts
 on active failures and failures in the preceding fifteen minutes, including those
 that subsequently recovered during a check-in. Bump `RENDERER_VERSION` when
 changing image-affecting renderer code so existing prepared images are rebuilt.
+
+Run Uvicorn with `--log-config=log_conf.yaml` (as the Docker image does) to use
+the timed access logs without duplicate Uvicorn access entries. Each entry includes
+the method, URL, status, `duration_ms`, and `device_id` when reported. Duration runs
+from server receipt through sending the final response body, including any wait
+for image rendering, and excludes background work after the response. Successful
+GET/HEAD health checks to `/` and `/healthz` are omitted; failures remain visible.
 
 ## E-ink rendering
 

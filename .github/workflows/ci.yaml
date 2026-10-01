@@ -106,10 +106,12 @@ jobs:
 
       - name: Test e-ink processing in Chromium
         env:
-          TEST_IMAGE: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          TEST_IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
           EINK_BROWSER_TESTS: '1'
         run: |
-          test_container=$(docker create "$TEST_IMAGE")
+          read -r test_image <<< "$TEST_IMAGE_TAGS"
+          : "${test_image:?Docker metadata did not produce an image tag}"
+          test_container=$(docker create "$test_image")
           trap 'docker rm "$test_container" >/dev/null' EXIT
           docker cp "$test_container":/app/frontend/dist/. frontend/dist/
           uv run --locked playwright install --with-deps --only-shell chromium

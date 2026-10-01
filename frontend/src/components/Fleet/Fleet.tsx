@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './fleet.css';
 
 type BatteryType = 'unknown' | 'alkaline' | 'li-poly' | 'li-ion';
@@ -13,7 +13,7 @@ type Panel = {
   width: number; height: number; battery_voltage: number | null;
   battery_reported_at: number | null; battery_percent: number | null;
   power_source: 'usb' | 'battery' | null;
-  image: { state: string; rendered_at?: number | null; error?: string | null };
+  image: { state: string; rendered_at?: number | null; error?: string | null; url?: string | null };
 };
 
 const date = (value: number | null | undefined) => value ? new Date(value * 1000).toLocaleString() : 'Not reported';
@@ -25,7 +25,7 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   }
   const body = await response.json();
   if (!response.ok) {
-    throw new Error(typeof body.detail === 'string' ? body.detail : 'Unable to save these settings. Check the form values.');
+    throw new Error(typeof body.detail === 'string' ? body.detail : 'Unable to complete the request. Please try again.');
   }
   return body;
 }
@@ -36,13 +36,16 @@ export default function Fleet() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const revision = useRef(0);
 
   useEffect(() => {
     let active = true;
     const refresh = async () => {
+      const startedAt = revision.current;
       try {
         const items = await api<Panel[]>('/panels');
-        if (active) { setPanels(items); setError(''); }
+        if (active && startedAt === revision.current) { setPanels(items); setError(''); }
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'Unable to load panels.');
       } finally {
@@ -55,9 +58,25 @@ export default function Fleet() {
   }, []);
 
   const saved = (panel: Panel) => {
+    revision.current += 1;
     setPanels(items => items.map(item => item.id === panel.id ? panel : item));
     setSelected(null);
     setNotice('Settings saved. The panel will receive them at its next check-in.');
+  };
+
+  const deletePanel = async (panel: Panel) => {
+    const label = panel.friendly_name ? `${panel.friendly_name} (${panel.id})` : panel.id;
+    if (!window.confirm(`Delete ${label}?\n\nThis removes the panel and its saved settings. If it is still active, it will register again at its next check-in and need setup. This cannot be undone.`)) return;
+    setDeleting(panel.id); setError(''); setNotice('');
+    try {
+      await api(`/panels/${encodeURIComponent(panel.id)}`, { method: 'DELETE' });
+      revision.current += 1;
+      setPanels(items => items.filter(item => item.id !== panel.id));
+      setSelected(current => current?.id === panel.id ? null : current);
+      setNotice(`${panel.friendly_name || panel.id} deleted.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete the panel. Please try again.');
+    } finally { setDeleting(null); }
   };
 
   return <main className="fleet">
@@ -77,16 +96,16 @@ export default function Fleet() {
           <td>{panel.power_source === 'usb' && <strong>USB powered<br /></strong>}
             {panel.battery_voltage !== null ? <>{panel.battery_percent !== null ? `≈ ${panel.battery_percent}% · ` : ''}{panel.battery_voltage.toFixed(2)} V<small>Battery measured {date(panel.battery_reported_at)}</small></> : 'Battery not reported'}</td>
           <td>{panel.reported_version === panel.config_version ? 'Synced' : 'Awaiting check-in'}</td>
-          <td><span className={`fleet-badge ${panel.image.state === 'failed' ? 'fleet-failed' : ''}`}>{panel.image.state}</span><small>{panel.image.rendered_at ? date(panel.image.rendered_at) : ''}</small>{panel.image.error && <small className="fleet-error">{panel.image.error}</small>}</td>
-          <td><button onClick={() => { setSelected(panel); setNotice(''); }}>Configure</button></td>
+          <td><span className={`fleet-badge ${panel.image.state === 'failed' ? 'fleet-failed' : ''}`}>{panel.image.state}</span>{panel.image.url ? <><small><a href={panel.image.url} target="_blank" rel="noopener noreferrer">View cached image</a></small><small>Created {date(panel.image.rendered_at)}</small></> : <small>No cached image</small>}{panel.image.error && <small className="fleet-error">{panel.image.error}</small>}</td>
+          <td><div className="fleet-row-actions"><button disabled={deleting !== null} onClick={() => { setSelected(panel); setNotice(''); }}>Configure</button><button className="fleet-danger" disabled={deleting !== null} onClick={() => { void deletePanel(panel); }}>{deleting === panel.id ? 'Deleting…' : 'Delete'}</button></div></td>
         </tr>)}</tbody>
       </table></div>}
-    {selected && <Editor key={selected.id} panel={selected} onSave={saved} onCancel={() => setSelected(null)} />}
+    {selected && <Editor key={selected.id} panel={selected} onSave={saved} onCancel={() => setSelected(null)} deleting={deleting === selected.id} />}
     <p className="fleet-footnote">Battery percentages are approximate voltage estimates. Weather is prepared five minutes before the scheduled refresh.</p>
   </main>;
 }
 
-function Editor({ panel, onSave, onCancel }: { panel: Panel; onSave: (panel: Panel) => void; onCancel: () => void }) {
+function Editor({ panel, onSave, onCancel, deleting }: { panel: Panel; onSave: (panel: Panel) => void; onCancel: () => void; deleting: boolean }) {
   const [friendlyName, setFriendlyName] = useState(panel.friendly_name);
   const [config, setConfig] = useState(panel.config);
   const [lat, setLat] = useState(panel.config.lat?.toString() ?? '');
@@ -127,7 +146,7 @@ function Editor({ panel, onSave, onCancel }: { panel: Panel; onSave: (panel: Pan
       }}><option value="unknown">Unknown — report voltage only</option><option value="alkaline">Alkaline</option><option value="li-poly">Lithium polymer</option><option value="li-ion">Lithium ion</option></select></label>
       <label>Cells in series<input type="number" min={1} max={config.battery_type === 'li-poly' || config.battery_type === 'li-ion' ? 1 : 4} required value={config.battery_cells} onChange={e => setConfig({ ...config, battery_cells: Number(e.target.value) })} /></label>
       {error && <p role="alert" className="fleet-error">{error}</p>}
-      <div className="fleet-actions"><button disabled={saving} type="submit">{saving ? 'Saving…' : 'Save settings'}</button><button disabled={saving} type="button" className="fleet-secondary" onClick={onCancel}>Cancel</button></div>
+      <div className="fleet-actions"><button disabled={saving || deleting} type="submit">{saving ? 'Saving…' : 'Save settings'}</button><button disabled={saving || deleting} type="button" className="fleet-secondary" onClick={onCancel}>Cancel</button></div>
     </form>
   </section>;
 }

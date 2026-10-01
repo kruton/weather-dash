@@ -23,6 +23,11 @@ loggers:
       - default
     propagate: no
   uvicorn.access:
+    level: WARNING
+    handlers:
+      - access
+    propagate: no
+  weather_dash.access:
     level: INFO
     handlers:
       - access

@@ -30,31 +30,33 @@ const Home = () => {
   };
 
   return (
-    <div className="home">
-      <h1>Welcome to the Weather Dashboard</h1>
+    <>
+      <div className="home">
+        <h1>Weather Dashboard Creator</h1>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Location Name (optional)"
+            value={name || ''}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Latitude"
+            value={lat}
+            onChange={(e) => setLat(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Longitude"
+            value={long}
+            onChange={(e) => setLong(e.target.value)}
+          />
+          <button type="submit">Create Dashboard</button>
+        </form>
+      </div>
       <a href="/admin">Manage panels</a>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Location Name (optional)"
-          value={name || ''}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="Latitude"
-          value={lat}
-          onChange={(e) => setLat(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="Longitude"
-          value={long}
-          onChange={(e) => setLong(e.target.value)}
-        />
-        <button type="submit">Go to Weather</button>
-      </form>
-    </div>
+    </>
   );
 }
 

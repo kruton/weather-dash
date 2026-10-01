@@ -85,6 +85,63 @@ def test_registration_race_and_persistence(tmp_path):
     assert reloaded.get("ab" * 8)["config"]["lat"] == 10
 
 
+def test_delete_panel_persists_and_allows_registration_again(services):
+    client, registry, cache = services
+    registry.register("aa", 800, 480, None)
+    registry.configure("aa", PanelSettings(friendly_name="Office", lat=10, long=20))
+    registry.register("bb", 800, 480, None)
+    assert client.delete(
+        "/admin/api/panels/aa", headers={"Origin": "https://untrusted.example"}
+    ).status_code == 403
+    assert registry.get("aa") is not None
+    response = client.delete("/admin/api/panels/aa", headers={"Origin": "http://testserver"})
+    assert response.status_code == 200
+    assert response.json() == {"deleted": "aa"}
+    assert Registry(registry.directory).get("aa") is None
+    assert [panel["id"] for panel in client.get("/admin/api/panels").json()] == ["bb"]
+    assert client.get("/admin/api/panels/aa").status_code == 404
+    assert client.delete("/admin/api/panels/aa").status_code == 404
+    assert client.get(
+        "/api/screenshot?width=800&height=480", headers={"X-Weather-Device-ID": "aa"}
+    ).status_code == 200
+    assert not registry.get("aa")["config"]["configured"]
+    assert registry.get("aa")["friendly_name"] == ""
+    cache.render.assert_not_called()
+
+
+def test_cached_image_information_and_download(services):
+    client, registry, cache = services
+    registry.register("aa", 800, 480, None)
+    assert client.get("/admin/api/panels/aa").json()["image"]["url"] is None
+    assert client.get("/admin/api/panels/aa/image").status_code == 404
+    assert client.get("/admin/api/panels/missing/image").status_code == 404
+    panel = registry.configure("aa", PanelSettings(lat=10, long=20))
+    assert client.get("/admin/api/panels/aa/image").status_code == 404
+    response = client.get(
+        "/api/screenshot?width=800&height=480", headers={"X-Weather-Device-ID": "aa"}
+    )
+    assert response.status_code == 200
+    image = client.get("/admin/api/panels").json()[0]["image"]
+    assert image["state"] == "ready"
+    assert image["rendered_at"] == cache.metadata(target_key(panel))["rendered_at"]
+    assert image["url"] == "/admin/api/panels/aa/image"
+    cached = client.get(image["url"])
+    assert cached.status_code == 200
+    assert cached.headers["content-type"] == "image/png"
+    assert cached.headers["cache-control"] == "no-store"
+    assert cached.content == png()
+    # A failed refresh still exposes the previous cached image.
+    cache.errors[target_key(panel)] = "Render failed"
+    assert client.get("/admin/api/panels/aa").json()["image"]["state"] == "failed"
+    assert client.get(image["url"]).content == png()
+    assert cache.render.call_count == 1
+    registry.configure("aa", PanelSettings(lat=30, long=40))
+    assert client.get("/admin/api/panels/aa").json()["image"]["url"] is None
+    assert client.get(image["url"]).status_code == 404
+    client.delete("/admin/api/panels/aa")
+    assert client.get(image["url"]).status_code == 404
+
+
 def test_57_registration_reconciles_existing_panel(services):
     client, registry, _ = services
     device_id = "cd" * 8

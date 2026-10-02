@@ -201,7 +201,7 @@ importers:
         version: 7.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       vite-css-modules:
         specifier: ^1.16.0
-        version: 1.16.0(lightningcss@1.33.0)(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.1))
+        version: 1.16.0(lightningcss@1.33.0)(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.1))
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -217,7 +217,7 @@ importers:
         version: typescript@7.0.2
       '@vitejs/plugin-react-swc':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.1(esbuild@0.28.1))
+        version: 4.3.3(vite@8.3.2(esbuild@0.28.1))
       eslint:
         specifier: ^10.11.0
         version: 10.11.0
@@ -238,7 +238,7 @@ importers:
         version: 8.71.0(@typescript/typescript6@6.0.2)(eslint@10.11.0)
       vite:
         specifier: ^8.3.1
-        version: 8.3.1(esbuild@0.28.1)
+        version: 8.3.2(esbuild@0.28.1)
     optionalDependencies:
       '@rollup/wasm-node':
         specifier: 4.64.0
@@ -1619,8 +1619,8 @@ packages:
       lightningcss:
         optional: true
 
-  vite@8.3.1:
-    resolution: {integrity: sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==}
+  vite@8.3.2:
+    resolution: {integrity: sha512-SQr1x6W5vVSbROg7vsyXIaxK9b0G7zsT68acdWWRmnBUsgDieLCRG+Rep9WdZgcposvv/GSnr4GUUBqB3vXq6w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -2259,11 +2259,11 @@ snapshots:
     dependencies:
       '@typescript/old': typescript@6.0.3
 
-  '@vitejs/plugin-react-swc@4.3.3(vite@8.3.1(esbuild@0.28.1))':
+  '@vitejs/plugin-react-swc@4.3.3(vite@8.3.2(esbuild@0.28.1))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       '@swc/core': 1.15.47
-      vite: 8.3.1(esbuild@0.28.1)
+      vite: 8.3.2(esbuild@0.28.1)
     transitivePeerDependencies:
       - '@swc/helpers'
 
@@ -2850,7 +2850,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-css-modules@1.16.0(lightningcss@1.33.0)(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.1)):
+  vite-css-modules@1.16.0(lightningcss@1.33.0)(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.1)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -2868,13 +2868,13 @@ snapshots:
       postcss-modules-values: 4.0.0(postcss@8.5.28)
       postcss-selector-parser: 7.1.4
       tinyglobby: 0.2.17
-      vite: 8.3.1(esbuild@0.28.1)
+      vite: 8.3.2(esbuild@0.28.1)
     optionalDependencies:
       lightningcss: 1.33.0
     transitivePeerDependencies:
       - rollup
 
-  vite@8.3.1(esbuild@0.28.1):
+  vite@8.3.2(esbuild@0.28.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7

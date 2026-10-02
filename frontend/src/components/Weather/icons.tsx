@@ -34,7 +34,7 @@ export {
 };
 
 interface IconDictionary {
-  [key: string]: any; // Defines keys as strings and values as numbers
+  [key: string]: string;
 }
 
 export const WeatherIcons: IconDictionary = {

@@ -359,6 +359,11 @@
   color: #000;
 }
 
+/* Pale cyan clouds need denser blue ink on the 5.7-inch ACeP display. */
+.weather-dashboard[data-panel-profile="acep"] img[data-blue-weather-icon="true"] {
+  filter: hue-rotate(25deg) saturate(2) brightness(0.8);
+}
+
 .weather-dashboard[data-panel-profile] .current-date,
 .weather-dashboard[data-panel-profile] .feels-like,
 .weather-dashboard[data-panel-profile] .data-point-label,

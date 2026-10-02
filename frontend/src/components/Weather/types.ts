@@ -1,9 +1,9 @@
 export interface Day {
     day: string;
-    icon: any;
+    icon: string;
     high: number;
     low: number;
-    moonPhaseIcon: any;
+    moonPhaseIcon: string;
     moonPhasePercent: string;
 }
 
@@ -24,7 +24,7 @@ export interface LocalWeather {
 export interface ParsedWeatherData {
     currentDate: string;
     location: string;
-    currentDayIcon: any;
+    currentDayIcon: string;
     currentTemperature: string;
     feelsLike: string;
     temperatureUnit: string;

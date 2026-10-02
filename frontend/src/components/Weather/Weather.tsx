@@ -7,6 +7,9 @@ import type { Day, DataPoint, ParsedWeatherData, UnitKey } from './types';
 import { getParsedWeatherData } from './fetch';
 import { format } from 'date-fns';
 import { isPanelProfile } from '../../eink/profiles';
+import { W03d, W04d, W50d } from './icons';
+
+const BLUE_WEATHER_ICONS = new Set([W03d, W04d, W50d]);
 
 const SHOW_LAST_REFRESH = false;
 const DISPLAY_METRICS = true;
@@ -36,7 +39,7 @@ const Header = ({ cityName }: { cityName: string }) => {
 const CurrentWeather = ({ current }: { current: ParsedWeatherData }) => {
     return (
         <div className={styles["current-temperature"]}>
-            <img className={styles["current-icon"]} src={current.currentDayIcon} alt="Current Weather Icon" />
+            <img className={styles["current-icon"]} data-blue-weather-icon={BLUE_WEATHER_ICONS.has(current.currentDayIcon)} src={current.currentDayIcon} alt="Current Weather Icon" />
             <div className={styles["current-weather"]}>
                 <div className={styles["current-temp"]}>{current.currentTemperature}<span className={styles["temperature-unit"]}>{current.temperatureUnit}</span></div>
                 <div className={styles["feels-like"]}>Feels Like {current.feelsLike}{current.units != "standard" ? "°" : ""}</div>
@@ -94,7 +97,7 @@ const ForecastDay = ({ day, units }: { day: Day, units: string }) => {
     return (
         <div className={styles["forecast-day"]}>
             <div className={styles["forecast-day-name"]}>{day.day}</div>
-            <img className={styles["forecast-icon"]} src={day.icon} alt={day.day + " Weather Icon"} />
+            <img className={styles["forecast-icon"]} data-blue-weather-icon={BLUE_WEATHER_ICONS.has(day.icon)} src={day.icon} alt={day.day + " Weather Icon"} />
             <div className={styles["forecast-temps"]}>
                 <span className={styles.high}>{Math.round(day.high)}{unitSuffix}</span>{' / '}
                 <span className={styles.low}>{Math.round(day.low)}{unitSuffix}</span>

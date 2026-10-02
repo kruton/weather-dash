@@ -55,7 +55,7 @@ const parseWeatherData = async (weatherData: WeatherData, aqiData: AirQualityDat
     };
 }
 
-const choosePhaseIcon = (phase: number): any => {
+const choosePhaseIcon = (phase: number): string => {
     const PHASES = [
         { value: 0.0, name: NewMoon },
         { value: 0.25, name: FirstQuarter },

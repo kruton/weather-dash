@@ -67,6 +67,10 @@ def get_package():
 
 
 def root_header(profile):
+    from .rust_ota import PROFILE, get_rust_package
+    if profile == PROFILE:
+        package = get_rust_package()
+        return {"X-Weather-OTA-Root": package.root} if package is not None else {}
     package = get_package()
     if package is not None and profile == protocol.PROFILE:
         return {"X-Weather-OTA-Root": package.root}

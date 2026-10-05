@@ -6,9 +6,43 @@
   "packageRules": [
     {
       "description": "Wait for pnpm's one-day release hold before proposing npm updates",
-      "matchDatasources": ["npm"],
+      "matchDatasources": [
+        "npm"
+      ],
       "minimumReleaseAge": "1 day",
       "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Review firmware upgrades before bundling them into server images",
+      "matchDatasources": [
+        "custom.weather-rust-firmware"
+      ],
+      "automerge": false,
+      "pinDigests": true
     }
-  ]
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Pin signed Rust OTA release tags and archive hashes together",
+      "managerFilePatterns": [
+        "/^rust-firmware\\.lock\\.json$/"
+      ],
+      "matchStrings": [
+        "\"tag\"\\s*:\\s*\"(?<currentValue>v[^\"]+)\"\\s*,\\s*\"sha256\"\\s*:\\s*\"(?<currentDigest>[0-9a-f]{64})\""
+      ],
+      "depNameTemplate": "kruton/weather-dash-rs",
+      "datasourceTemplate": "custom.weather-rust-firmware",
+      "versioningTemplate": "semver-coerced"
+    }
+  ],
+  "customDatasources": {
+    "weather-rust-firmware": {
+      "defaultRegistryUrlTemplate": "https://api.github.com/repos/{{{packageName}}}/releases?per_page=100",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": $append([], $[draft = false and prerelease = false].($asset := assets[name = \"weather-dash-rs-ota.tar\" and state = \"uploaded\" and ($type(digest) = \"string\" ? $contains(digest, /^sha256:[0-9a-f]{64}$/) : false)]; $count($asset) = 1 ? {\"version\": tag_name, \"digest\": $substring($asset.digest, 7)} : [])), \"sourceUrl\": \"https://github.com/kruton/weather-dash-rs\"}"
+      ]
+    }
+  }
 }

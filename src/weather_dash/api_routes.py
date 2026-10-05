@@ -104,7 +104,24 @@ async def take_screenshot(
     power_source: Annotated[
         Literal["battery", "usb"] | None, Header(alias="X-Weather-Power-Source")
     ] = None,
+    firmware_product: Annotated[str | None, Header(alias="X-Weather-OTA-Firmware-Product")] = None,
+    firmware_version: Annotated[str | None, Header(alias="X-Weather-Firmware-Version")] = None,
+    firmware_sha256: Annotated[str | None, Header(alias="X-Weather-Firmware-SHA256")] = None,
+    ota_status: Annotated[str | None, Header(alias="X-Weather-OTA-Status")] = None,
+    ota_target: Annotated[str | None, Header(alias="X-Weather-OTA-Target")] = None,
 ):
+    products = {"inky-rp2040-rust-v1": "weather-dash-rs", "inky-v1-mpy6": "micropython"}
+    inferred_product = products.get(ota_profile)
+    if firmware_product is not None and firmware_product != inferred_product:
+        raise HTTPException(422, "Firmware product does not match OTA profile")
+    if firmware_version is not None and not re.fullmatch(r"[A-Za-z0-9._+\-]{1,32}", firmware_version):
+        raise HTTPException(422, "Invalid firmware version")
+    if any(value is not None and not re.fullmatch(r"[0-9a-f]{64}", value) for value in (firmware_sha256, ota_target)):
+        raise HTTPException(422, "Invalid firmware hash")
+    if ota_status is not None and ota_status not in ("idle", "trial", "updated", "download_failed", "rolled_back"):
+        raise HTTPException(422, "Invalid OTA status")
+    if any(value is not None for value in (firmware_version, firmware_sha256, ota_status, ota_target)) and inferred_product is None:
+        raise HTTPException(422, "Firmware telemetry requires a known OTA profile")
     extra_headers = {}
     if device_id is not None:
         if not re.fullmatch(r"[0-9a-fA-F]{2,64}", device_id) or len(device_id) % 2:
@@ -124,6 +141,11 @@ async def take_screenshot(
             battery_voltage,
             power_source,
             display,
+            firmware_product=inferred_product,
+            firmware_version=firmware_version,
+            firmware_sha256=firmware_sha256,
+            ota_status=ota_status,
+            ota_target=ota_target,
         )
         if config_version != panel["config_version"]:
             extra_headers["X-Weather-Config"] = canonical(

@@ -222,3 +222,61 @@ To build the image without running anything:
 ```console
 $ docker build .
 ```
+
+## Rust firmware OTA
+
+Rust RP2040 panels use profile `inky-rp2040-rust-v1` and report product
+`weather-dash-rs`; MicroPython uses `inky-v1-mpy6` and retains the existing script
+OTA routes. Explicit `X-Weather-OTA-Firmware-Product` headers must agree with the
+profile. The fleet table shows firmware product/version, image hash, target, and
+last reported OTA outcome. Older clients do not erase existing firmware reports.
+
+`rust-firmware.lock.json` pins a signed `weather-dash-rs-ota.tar` release from the
+private `kruton/weather-dash-rs` repository by release tag and archive SHA-256.
+Renovate's custom firmware datasource reads GitHub release metadata and opens PRs
+updating both fields together. It includes only published stable releases with an
+uploaded `weather-dash-rs-ota.tar` and a valid SHA-256 digest. Firmware updates
+require review; they are not automerged. The initial pin is `v0.2.0`.
+
+For the hosted Renovate app, add a fine-grained token with Contents: read on
+`kruton/weather-dash-rs` to the `kruton/weather-dash` repository's Credentials
+settings at https://developer.mend.io. Add a host rule matching `api.github.com`
+using that token; omit the host type so it also covers custom datasource requests.
+See https://docs.renovatebot.com/mend-hosted/credentials/. Renovate credentials
+and Actions secrets are separate; granting one does not configure the other.
+
+Set `RUST_FIRMWARE_READ_TOKEN` in this repository's Actions secrets to a
+fine-grained token with Contents: read permission on the firmware repository.
+Do not put the firmware signing key in this server repository. Production image
+CI requires a populated lock; `null` permits local development without Rust OTA.
+
+To populate `ota-dist/rust` before a local Docker build:
+
+```sh
+uv run --locked python scripts/fetch-rust-firmware.py --required
+```
+
+The downloader resolves the pinned tag to the archive's GitHub API asset URL,
+checks GitHub's asset digest against the lock, then bounds and verifies the tar
+archive before extracting four allowed
+regular files. It strips authentication on cross-host redirects. Startup verifies
+the manifest signature against `src/weather_dash/rust-ota-public-key.der`, then
+checks profile, layout, flash address, vectors, size, and SHA-256 of the image.
+The signed firmware version must match the pinned release tag. Legacy locks with
+`url` and `sha256` still work but are not updated by Renovate.
+Missing packages are optional locally; incomplete or corrupt packages fail startup.
+`WEATHER_RUST_OTA_DIR` can select a local package directory and
+`WEATHER_RUST_OTA_PUBLIC_KEY` can select a test trust pin.
+
+Discovery uses the existing `X-Weather-OTA-Root` response header, including on
+weather 503 responses. Rust fetches `/api/ota/firmware/{root}/manifest.json` and
+`firmware.bin`; manifests include a detached hex DER signature in
+`X-Weather-OTA-Signature`. Routes serve only the current bundled root and disable
+caching. Server deployments, including older signed releases, select the update.
+A trial that fails on the panel rolls back locally and reports `rolled_back`.
+
+The initial release lock is intentionally empty until the first signed firmware
+release is published and private download access is configured. Each existing
+Rust panel needs the new combined installation UF2 once. Bootloader, key, and
+incompatible layout changes still require BOOTSEL. See the firmware repository's
+`docs/ota.md` for installation and hardware acceptance checks.

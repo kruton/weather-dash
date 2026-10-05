@@ -60,13 +60,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - uses: astral-sh/setup-uv@v10.2.0
+      - name: Fetch pinned signed Rust firmware
+        env:
+          RUST_FIRMWARE_READ_TOKEN: ${{ secrets.RUST_FIRMWARE_READ_TOKEN }}
+          PRODUCTION: ${{ github.event_name == 'push' }}
+        run: |
+          mkdir -p frontend/dist
+          args=()
+          if [[ "$PRODUCTION" == "true" ]]; then args+=(--required); fi
+          uv run --locked python scripts/fetch-rust-firmware.py "${args[@]}"
+
       - name: Download signed script package
         uses: actions/download-artifact@v8
         with:
           name: signed-script-package
           path: ota-dist
 
-      - uses: astral-sh/setup-uv@v10.2.0
       - name: Test server rendering, OTA package and schedule
         run: |
           mkdir -p frontend/dist
@@ -191,6 +201,17 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: astral-sh/setup-uv@v10.2.0
+      - name: Fetch pinned signed Rust firmware
+        env:
+          RUST_FIRMWARE_READ_TOKEN: ${{ secrets.RUST_FIRMWARE_READ_TOKEN }}
+          PRODUCTION: ${{ github.event_name == 'push' }}
+        run: |
+          mkdir -p frontend/dist
+          args=()
+          if [[ "$PRODUCTION" == "true" ]]; then args+=(--required); fi
+          uv run --locked python scripts/fetch-rust-firmware.py "${args[@]}"
 
       - name: Download signed script package
         uses: actions/download-artifact@v8

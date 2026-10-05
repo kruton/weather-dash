@@ -13,6 +13,9 @@ type Panel = {
   width: number; height: number; battery_voltage: number | null;
   battery_reported_at: number | null; battery_percent: number | null;
   power_source: 'usb' | 'battery' | null;
+  firmware_product: string | null; firmware_version: string | null;
+  firmware_sha256: string | null; ota_status: string | null;
+  ota_target: string | null; firmware_reported_at: number | null;
   image: { state: string; rendered_at?: number | null; error?: string | null; url?: string | null };
 };
 
@@ -88,7 +91,7 @@ export default function Fleet() {
     {notice && <p role="status" className="fleet-notice">{notice}</p>}
     {loading ? <p>Loading panels…</p> : !panels.length ? <section className="fleet-empty"><h2>Waiting for your first panel</h2><p>Set the dashboard URL on a panel and run Weather. It will register here automatically.</p></section> :
       <div className="fleet-table-wrap"><table>
-        <thead><tr><th>Panel</th><th>Location</th><th>Last contact</th><th>Battery / power</th><th>Configuration</th><th>Weather image</th><th><span className="fleet-sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Panel</th><th>Location</th><th>Last contact</th><th>Battery / power</th><th>Configuration</th><th>Firmware / OTA</th><th>Weather image</th><th><span className="fleet-sr-only">Actions</span></th></tr></thead>
         <tbody>{panels.map(panel => <tr key={panel.id}>
           <td><strong>{panel.friendly_name || 'Unnamed panel'}</strong><code>{panel.id}</code><small>{panel.width} × {panel.height}</small></td>
           <td>{panel.config.configured ? panel.config.name || `${panel.config.lat}, ${panel.config.long}` : <span className="fleet-badge">Needs setup</span>}</td>
@@ -96,6 +99,11 @@ export default function Fleet() {
           <td>{panel.power_source === 'usb' && <strong>USB powered<br /></strong>}
             {panel.battery_voltage !== null ? <>{panel.battery_percent !== null ? `≈ ${panel.battery_percent}% · ` : ''}{panel.battery_voltage.toFixed(2)} V<small>Battery measured {date(panel.battery_reported_at)}</small></> : 'Battery not reported'}</td>
           <td>{panel.reported_version === panel.config_version ? 'Synced' : 'Awaiting check-in'}</td>
+          <td>{panel.firmware_product ? <><strong>{panel.firmware_product === 'weather-dash-rs' ? 'Rust' : 'MicroPython'}{panel.firmware_version ? ` ${panel.firmware_version}` : ''}</strong>
+            {panel.ota_status && <small className={panel.ota_status === 'rolled_back' || panel.ota_status === 'download_failed' ? 'fleet-error' : ''}>{panel.ota_status.replaceAll('_', ' ')}</small>}
+            {panel.firmware_sha256 && <small title={panel.firmware_sha256}>Image {panel.firmware_sha256.slice(0, 12)}</small>}
+            {panel.ota_target && <small title={panel.ota_target}>Target {panel.ota_target.slice(0, 12)}</small>}
+            <small>Reported {date(panel.firmware_reported_at)}</small></> : 'Not reported'}</td>
           <td><span className={`fleet-badge ${panel.image.state === 'failed' ? 'fleet-failed' : ''}`}>{panel.image.state}</span>{panel.image.url ? <><small><a href={panel.image.url} target="_blank" rel="noopener noreferrer">View cached image</a></small><small>Created {date(panel.image.rendered_at)}</small></> : <small>No cached image</small>}{panel.image.error && <small className="fleet-error">{panel.image.error}</small>}</td>
           <td><div className="fleet-row-actions"><button disabled={deleting !== null} onClick={() => { setSelected(panel); setNotice(''); }}>Configure</button><button className="fleet-danger" disabled={deleting !== null} onClick={() => { void deletePanel(panel); }}>{deleting === panel.id ? 'Deleting…' : 'Delete'}</button></div></td>
         </tr>)}</tbody>

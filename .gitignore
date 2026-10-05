@@ -9,3 +9,7 @@ ota-dist/*
 
 # Local fleet database and prepared images
 /data/
+
+*.pem
+*.key
+.ota-private/

@@ -17,3 +17,7 @@ Dockerfile
 compose.yml
 run.sh
 mise.toml
+*.pem
+*.key
+.ota-private
+certs

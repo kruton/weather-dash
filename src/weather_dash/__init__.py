@@ -11,6 +11,7 @@ from .fleet import Registry
 from .fleet import router as fleet_router
 from .ota import get_package
 from .ota import router as ota_router
+from .rust_ota import get_rust_package, router as rust_ota_router
 from .prepared import ImageCache
 from .request_logging import RequestLoggingMiddleware
 
@@ -30,6 +31,7 @@ def get_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
         get_package()  # Verify signed assets before accepting requests.
+        get_rust_package()
         _, cache = fleet()
         cache.start()
         try:
@@ -62,6 +64,7 @@ def get_app() -> FastAPI:
 
     app.include_router(router)
     app.include_router(ota_router)
+    app.include_router(rust_ota_router)
     app.include_router(fleet_router)
     app.mount(
         "/", SPAStaticFiles(directory="./frontend/dist", html=True), name="static"

@@ -105,10 +105,16 @@ class Registry:
                 "battery_voltage REAL",
                 "battery_reported_at INTEGER",
                 "power_source TEXT",
+                "firmware_product TEXT",
+                "firmware_version TEXT",
+                "firmware_sha256 TEXT",
+                "ota_status TEXT",
+                "ota_target TEXT",
+                "firmware_reported_at INTEGER",
             ):
                 if column.split()[0] not in columns:
                     db.execute("ALTER TABLE panels ADD COLUMN " + column)
-            db.execute("PRAGMA user_version=2")
+            db.execute("PRAGMA user_version=3")
 
     @contextmanager
     def connect(self):
@@ -129,6 +135,11 @@ class Registry:
         battery_voltage=None,
         power_source=None,
         display=None,
+        firmware_product=None,
+        firmware_version=None,
+        firmware_sha256=None,
+        ota_status=None,
+        ota_target=None,
     ):
         if display is not None and display not in DISPLAYS:
             raise ValueError("Unsupported display")
@@ -171,6 +182,19 @@ class Registry:
                     "UPDATE panels SET power_source=? WHERE id=?",
                     (power_source, device_id),
                 )
+            if firmware_product is not None:
+                db.execute("""UPDATE panels SET firmware_version=NULL,
+                    firmware_sha256=NULL, ota_status=NULL, ota_target=NULL,
+                    firmware_reported_at=NULL WHERE id=? AND firmware_product != ?""",
+                    (device_id, firmware_product))
+                db.execute("""UPDATE panels SET firmware_product=?,
+                    firmware_version=COALESCE(?, firmware_version),
+                    firmware_sha256=COALESCE(?, firmware_sha256),
+                    ota_status=COALESCE(?, ota_status),
+                    ota_target=CASE WHEN ? IS NOT NULL THEN ? ELSE ota_target END,
+                    firmware_reported_at=? WHERE id=?""",
+                    (firmware_product, firmware_version, firmware_sha256, ota_status,
+                     ota_status, ota_target, now, device_id))
         return self.get(device_id)
 
     @staticmethod

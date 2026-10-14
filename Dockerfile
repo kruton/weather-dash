@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 
 # Run the application without the Node or uv build toolchains.
-FROM python:3.14-slim-trixie AS runtime
+FROM python:3.15-slim-trixie AS runtime
 
 ARG BUILDTIME
 ARG VERSION
